@@ -1,0 +1,499 @@
+Fundamentos de Java
+Guía base para empezar a crear mods de Minecraft.
+
+1. Cómo funciona Java
+
+- Código fuente (.java) → el compilador javac lo convierte en bytecode (.class) → la JVM lo ejecuta.
+- JDK: kit de desarrollo (compilador + herramientas + JVM). Es lo que instalas para programar.
+- JRE/JVM: solo ejecuta programas.
+- En modding, Gradle hace la compilación por ti; casi nunca usarás javac directamente.
+
+Ejemplo:
+
+// Hola.java
+public class Hola {
+    public static void main(String[] args) {
+        System.out.println("Hola mundo");
+    }
+}
+
+Reglas importantes:
+- El nombre del archivo debe coincidir con la clase pública: Hola.java → class Hola.
+- main es el punto de entrada. En un mod no lo escribes: el loader (Fabric/NeoForge) llama a tu código.
+- Java distingue mayúsculas y minúsculas.
+- Cada instrucción termina con ;.
+
+2. Variables y tipos de datos
+
+2.1 Tipos primitivos
+
+Tipo        Tamaño      Ejemplo                 Uso típico
+byte        8 bits      byte b = 10;            Datos pequeños
+short       16 bits     short s = 500;          Poco usado
+int         32 bits     int vida = 20;          Enteros (el más común)
+long        64 bits     long t = 100L;          Enteros grandes, tiempos
+float       32 bits     float v = 1.5f;         Decimales (muy usado en Minecraft)
+double      64 bits     double d = 2.5;         Decimales precisos
+boolean     1 bit       boolean vivo = true;    Verdadero/falso
+char        16 bits     char c = 'A';           Un carácter
+
+2.2 Reglas importantes
+
+int edad = 15;                // declaración + asignación
+final int MAX = 100;          // constante: no puede cambiar
+var nombre = "Steve";         // inferencia de tipo (Java 10+)
+
+Convenciones:
+- Variables: camelCase (vidaMaxima)
+- Constantes: MAYUSCULAS_CON_GUION
+- Clases: PascalCase
+
+Conversión (casting):
+int a = (int) 3.9;            // 3 (se trunca, no se redondea)
+double b = 5;                // automática: int -> double
+
+2.3 Tipos por referencia
+
+Todo lo que no es primitivo es un objeto (String, arrays, tus clases).
+Su valor por defecto es null.
+Usar un objeto null provoca NullPointerException, el error más común en Java.
+
+3. Operadores
+
+Categoría        Operadores
+Aritméticos      + - * / %
+Asignación       = += -= *= /=
+Incremento       ++ --
+Comparación      == != < > <= >=
+Lógicos          && || !
+Ternario         condicion ? siSi : siNo
+
+Ejemplos:
+- 5 / 2 es 2 (división entera)
+- 5 / 2.0 es 2.5
+- % devuelve el residuo: 7 % 3 es 1
+
+4. Strings (texto)
+
+String s = "Minecraft";
+
+s.length();                  // 9
+s.toUpperCase();             // "MINECRAFT"
+s.substring(0, 4);          // "Mine"
+s.contains("craft");       // true
+s.equals("Minecraft");      // true
+"Hola " + s;                 // concatenación
+String.format("Vida: %d", 20);
+
+Reglas:
+- Nunca compares Strings con ==; usa .equals()
+- == compara referencias, no contenido
+- Los String son inmutables: cada método devuelve un String nuevo
+- Para concatenar muchas veces en un bucle, usa StringBuilder
+
+5. Control de flujo
+
+5.1 Condicionales
+
+if (vida <= 0) {
+    System.out.println("Muerto");
+} else if (vida < 5) {
+    System.out.println("Crítico");
+} else {
+    System.out.println("Bien");
+}
+
+5.2 switch
+
+switch (dia) {
+    case 1:
+        System.out.println("Lunes");
+        break;
+    case 2:
+        System.out.println("Martes");
+        break;
+    default:
+        System.out.println("Otro");
+}
+
+Forma moderna (Java 14+), sin break:
+
+String nombre = switch (dia) {
+    case 1 -> "Lunes";
+    case 2 -> "Martes";
+    default -> "Otro";
+};
+
+5.3 Bucles
+
+for (int i = 0; i < 5; i++) { ... }      // contador
+while (condicion) { ... }                // mientras
+
+do { ... } while (condicion);            // al menos una vez
+for (String x : lista) { ... }           // for-each (recorre colecciones)
+
+break sale del bucle.
+continue salta a la siguiente iteración.
+
+6. Arrays
+
+int[] numeros = new int[5];      // 5 posiciones, todas en 0
+int[] datos = {10, 20, 30};
+datos[0] = 99;                   // el primer índice es 0
+int tam = datos.length;          // propiedad, sin paréntesis
+int[][] matriz = new int[3][3];  // arreglo 2D
+
+Puntos clave:
+- El tamaño es fijo
+- Si necesitas tamaño variable, usa ArrayList (sección 14)
+- Acceder fuera de rango lanza ArrayIndexOutOfBoundsException
+
+7. Métodos
+
+public static int sumar(int a, int b) {
+    return a + b;
+}
+
+public static void saludar(String nombre) {
+    System.out.println("Hola " + nombre);
+}
+
+Estructura:
+modificador tipoRetorno nombre(parametros) { cuerpo }
+
+Conceptos importantes:
+- Sobrecarga: varios métodos con el mismo nombre y distintos parámetros
+- Los primitivos se pasan por valor (copia)
+- Los objetos se pasan por valor de la referencia: puedes modificar el objeto, pero no reasignar la variable original
+- Varargs: void f(int... nums) acepta cantidad variable de argumentos
+
+8. Programación orientada a objetos (POO)
+
+Es el concepto más importante para modding: todo en Minecraft (bloques, ítems, entidades) son clases y objetos.
+
+8.1 Clases y objetos
+
+Una clase es el molde; un objeto es una instancia creada con ese molde.
+
+public class Jugador {
+    // Atributos (estado)
+    private String nombre;
+    private int vida;
+
+    // Constructor
+    public Jugador(String nombre, int vida) {
+        this.nombre = nombre;
+        this.vida = vida;
+    }
+
+    // Métodos (comportamiento)
+    public void recibirDano(int cantidad) {
+        vida -= cantidad;
+    }
+
+    public int getVida() {
+        return vida;
+    }
+}
+
+Uso:
+Jugador j = new Jugador("Steve", 20);
+j.recibirDano(5);
+System.out.println(j.getVida());  // 15
+
+Observaciones:
+- this se refiere al objeto actual
+- Si no escribes constructor, Java crea uno vacío por defecto
+
+8.2 Los cuatro pilares
+
+- Encapsulamiento: atributos private, acceso mediante getters/setters
+- Herencia: una clase reutiliza otra (extends)
+- Polimorfismo: un mismo tipo base, comportamientos distintos
+- Abstracción: exponer lo esencial con clases abstractas e interfaces
+
+8.3 Modificadores de acceso
+
+Modificador      Quién puede acceder
+public           Cualquiera
+protected        Mismo paquete y subclases
+(ninguno)        Solo el mismo paquete
+private          Solo la propia clase
+
+8.4 static y final
+
+- static: pertenece a la clase, no a cada objeto. Se usa sin crear instancia (Math.max(1, 2))
+- final en variable: no se puede reasignar
+- final en método: no se puede sobrescribir
+- final en clase: no se puede heredar
+
+En modding verás mucho public static final para registrar bloques e ítems.
+
+public static final Item MI_ITEM = new Item(new Item.Settings());
+
+8.5 Herencia
+
+public class Animal {
+    protected String nombre;
+
+    public void hacerSonido() {
+        System.out.println("...");
+    }
+}
+
+public class Perro extends Animal {
+    @Override
+    public void hacerSonido() {
+        System.out.println("Guau");
+    }
+}
+
+Reglas:
+- Java permite una sola clase padre (extends), pero varias interfaces
+- super accede a la clase padre: super.metodo() o super(args) en el constructor
+- @Override indica que sobrescribes un método y ayuda a evitar errores de escritura
+- En modding casi todo se hace extendiendo clases de Minecraft (Item, Block, Entity)
+
+8.6 Polimorfismo
+
+Animal a = new Perro();
+a.hacerSonido();   // "Guau": se ejecuta la versión de Perro
+
+8.7 Clases abstractas
+
+public abstract class Figura {
+    public abstract double area();
+
+    public void describir() {
+        System.out.println("Soy una figura");
+    }
+}
+
+No se pueden instanciar directamente; obligan a las subclases a implementar los métodos abstractos.
+
+8.8 Interfaces
+
+public interface Volador {
+    void volar();
+
+    default void aterrizar() {
+        System.out.println("Aterrizando");
+    }
+}
+
+public class Murcielago extends Animal implements Volador {
+    @Override
+    public void volar() {
+        // ...
+    }
+}
+
+Las interfaces definen qué se puede hacer, no cómo.
+Una clase puede implementar varias: implements A, B.
+
+8.9 Clases internas y anónimas
+
+Runnable r = new Runnable() {
+    @Override
+    public void run() {
+        System.out.println("Hola");
+    }
+};
+
+Hoy suelen reemplazarse por lambdas (sección 16).
+
+9. Enums
+
+public enum Dificultad { FACIL, NORMAL, DIFICIL }
+
+Dificultad d = Dificultad.NORMAL;
+
+switch (d) {
+    case FACIL -> System.out.println("Relax");
+    default -> System.out.println("Cuidado");
+}
+
+Son ideales para conjuntos fijos de valores. Pueden tener atributos y métodos.
+
+10. Records (Java 16+)
+
+public record Posicion(int x, int y, int z) {}
+
+Posicion p = new Posicion(1, 64, 5);
+p.x();   // 1
+
+Un record es una clase inmutable que genera automáticamente constructor, getters, equals, hashCode y toString. Minecraft moderno los usa bastante.
+
+11. Paquetes e imports
+
+package com.tunombre.mimod.items;  // primera línea del archivo
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.*;                   // todo el paquete
+
+Los paquetes organizan el código. La convención es dominio al revés: com.tunombre.mimod.
+La estructura de carpetas debe coincidir con el paquete.
+java.lang (String, Math, System) se importa automáticamente.
+
+12. Excepciones
+
+try {
+    int x = Integer.parseInt("abc");
+} catch (NumberFormatException e) {
+    System.out.println("No es un número");
+} finally {
+    System.out.println("Siempre se ejecuta");
+}
+
+Tipos:
+- Checked: el compilador te obliga a manejarlas (IOException)
+- Unchecked (RuntimeException): NullPointerException, ArrayIndexOutOfBoundsException
+
+throw new IllegalArgumentException("mensaje");
+
+throws en la firma del método declara que puede lanzar una checked.
+Leer el stack trace es una habilidad clave: la primera línea dice el error y las siguientes indican dónde ocurrió.
+
+13. Genéricos
+
+List<String> nombres = new ArrayList<>();
+Map<String, Integer> puntos = new HashMap<>();
+
+Permiten definir clases y métodos que funcionan con distintos tipos con seguridad de tipos.
+Los tipos primitivos se escriben con su envoltorio: Integer, Double, Boolean, Character.
+
+14. Colecciones
+
+Colección           Descripción                      Cuándo usarla
+ArrayList<T>        Lista dinámica ordenada          Lo más común
+LinkedList<T>       Lista enlazada                  Inserciones frecuentes al inicio o medio
+HashSet<T>          Conjunto sin repetidos           Evitar duplicados
+HashMap<K, V>       Pares clave → valor             Buscar por clave
+ArrayDeque<T>       Cola/pila                       Procesar en orden FIFO/LIFO
+
+Ejemplos:
+List<String> items = new ArrayList<>();
+items.add("espada");
+items.get(0);               // "espada"
+items.remove(0);
+items.size();
+items.contains("pico");
+
+Map<String, Integer> stock = new HashMap<>();
+stock.put("diamante", 5);
+stock.get("diamante");                 // 5
+stock.getOrDefault("oro", 0);          // 0
+
+for (var e : stock.entrySet()) {
+    System.out.println(e.getKey() + " = " + e.getValue());
+}
+
+List<Integer> fija = List.of(1, 2, 3);    // inmutable
+
+15. Optional y null
+
+Optional<String> o = Optional.of("hola");
+o.isPresent();
+o.orElse("por defecto");
+o.ifPresent(v -> System.out.println(v));
+
+Sirve para representar “puede que no haya valor” sin devolver null.
+Verás Optional con frecuencia en las APIs de Minecraft.
+
+16. Lambdas y programación funcional
+
+// Interfaz funcional: una interfaz con un solo método abstracto
+Runnable r = () -> System.out.println("Ejecutando");
+Function<Integer, Integer> doble = x -> x * 2;
+BiFunction<Integer, Integer, Integer> suma = (a, b) -> a + b;
+Predicate<String> vacio = s -> s.isEmpty();
+Consumer<String> imprimir = s -> System.out.println(s);
+Supplier<Integer> aleatorio = () -> 42;
+
+// Referencia a método
+items.forEach(System.out::println);
+
+En modding, las lambdas son muy frecuentes: eventos, callbacks y registro de comandos.
+
+// Ejemplo típico de evento (estilo Fabric)
+ServerTickEvents.END_SERVER_TICK.register(server -> {
+    // código que corre cada tick
+});
+
+17. Streams
+
+List<Integer> nums = List.of(1, 2, 3, 4, 5, 6);
+
+List<Integer> pares = nums.stream()
+    .filter(n -> n % 2 == 0)     // 2, 4, 6
+    .map(n -> n * 10)            // 20, 40, 60
+    .toList();
+
+int total = nums.stream().mapToInt(Integer::intValue).sum();
+
+Operaciones comunes: filter, map, sorted, collect/toList, anyMatch, count.
+
+18. Anotaciones
+
+@Override                 // sobrescribe un método
+@Deprecated               // marcado como obsoleto
+@FunctionalInterface      // interfaz con un solo método abstracto
+@SuppressWarnings("unchecked")
+
+En modding aparecen mucho en los Mixins (Fabric): @Mixin, @Inject, @Shadow.
+Aquí solo necesitas entender que son metadatos que modifican cómo se trata el código.
+
+19. Entrada/Salida básica
+
+// Leer del teclado
+Scanner sc = new Scanner(System.in);
+String linea = sc.nextLine();
+int n = sc.nextInt();
+
+// Leer/escribir archivos (Java moderno)
+String texto = Files.readString(Path.of("datos.txt"));
+Files.writeString(Path.of("salida.txt"), "contenido");
+
+En modding la configuración suele ir en archivos JSON; para eso se usa la librería Gson, que ya viene incluida con Minecraft.
+
+20. Conceptos útiles que verás en modding
+
+- Herencia por todos lados: Item, Block, Entity son clases base que extiendes
+- Registro (Registry): los elementos del juego se “registran” con un identificador
+- Eventos y callbacks: tu código reacciona a lo que ocurre en el juego
+- Hilos (threads): Minecraft separa el hilo del cliente y el del servidor. Modificar datos del juego desde el hilo equivocado causa errores. Es un tema avanzado; léelo cuando llegues a él
+- Singleton y patrón Builder: muy comunes (new Item.Settings().maxCount(1))
+- Constantes static final: para guardar tus ítems y bloques registrados
+
+21. Errores comunes de principiantes
+
+Error                         Causa                                      Solución
+NullPointerException          Usar un objeto que es null                 Verifica != null o usa Optional
+cannot find symbol           Nombre mal escrito o falta import          Revisa ortografía e imports
+incompatible types            Asignar un tipo a otro incompatible        Usa casting o cambia el tipo
+missing return statement     El método no devuelve valor en todos los caminos  Agrega return
+Comparar Strings con ==      Compara referencias                        Usa .equals()
+ArrayIndexOutOfBounds        Índice fuera del rango                    Recuerda: índices de 0 a length - 1
+Olvidar @Override             Error silencioso al sobrescribir          Siempre ponlo
+
+22. Ruta de práctica recomendada
+
+- Semana 1: variables, operadores, condicionales, bucles. Ejercicio: calculadora por consola.
+- Semana 2: métodos y arrays. Ejercicio: adivina el número.
+- Semana 3: clases, objetos, encapsulamiento. Ejercicio: sistema de inventario con Jugador e Item.
+- Semana 4: herencia, interfaces, polimorfismo. Ejercicio: jerarquía Animal → Perro, Gato.
+- Semana 5: colecciones, excepciones, lambdas. Ejercicio: gestor de tareas que guarde en archivo.
+
+Después: empieza tu primer mod (un ítem). Aprenderás el resto sobre la marcha.
+
+Recursos gratuitos:
+- dev.java (sitio oficial de Oracle, aprende Java gratis)
+- MOOC.fi Java Programming (curso universitario gratuito y muy bueno, en inglés)
+- Codecademy/W3Schools Java (resúmenes rápidos)
+- docs.fabricmc.net o docs.neoforged.net (documentación de modding)
+
+Regla de oro:
+No necesitas dominar todo esto antes de empezar un mod.
+Domina las secciones 2 a 8 (variables, control de flujo, métodos y POO) y aprende el resto cuando lo necesites.
+
