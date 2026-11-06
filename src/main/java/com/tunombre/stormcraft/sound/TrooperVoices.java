@@ -43,7 +43,7 @@ public final class TrooperVoices {
 					throw new IllegalStateException("Clip de voz inválido: " + name);
 				}
 				Identifier id = TroperCraftMod.id(name);
-				SoundEvent sound = Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id, 24.0F));
+				SoundEvent sound = Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id, ModSounds.VOICE_RANGE));
 				loaded.add(new VoiceLine(name, sound, duration, mood));
 			}
 			if (loaded.stream().noneMatch(line -> line.matches(false))

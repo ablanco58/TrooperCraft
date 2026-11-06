@@ -7,7 +7,10 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 
 public final class ModSounds {
-	public static final SoundEvent BLASTER_SHOOT = sound("blaster_shoot");
+	// Keep these ranges in sync with attenuation_distance in sounds.json/importers.
+	public static final int VOICE_RANGE = 48;
+	public static final int BLASTER_RANGE = 64;
+	public static final SoundEvent BLASTER_SHOOT = sound("blaster_shoot", BLASTER_RANGE);
 	public static final SoundEvent LASER_IMPACT = sound("laser_impact");
 	public static final SoundEvent TROOPER_RADIO = sound("trooper_radio");
 	public static final SoundEvent TROOPER_HURT = sound("trooper_hurt");
@@ -18,6 +21,11 @@ public final class ModSounds {
 	private static SoundEvent sound(String path) {
 		Identifier id = TroperCraftMod.id(path);
 		return Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
+	}
+
+	private static SoundEvent sound(String path, float range) {
+		Identifier id = TroperCraftMod.id(path);
+		return Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id, range));
 	}
 
 	public static void register() {

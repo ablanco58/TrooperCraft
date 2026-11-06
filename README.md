@@ -5,9 +5,11 @@ Mod para **Minecraft Java 1.20.1 con Fabric** que añade patrullas hostiles de *
 ## Comportamiento
 
 - Grupos completos de 3, 4 o 5 miembros, con un líder y seguidores en formación.
-- Aparición frecuente de día y de noche, en cualquier bioma del Overworld con suelo y espacio válidos, incluidas cuevas iluminadas.
+- Aparición progresiva según las noches del mundo: primera tranquila, segunda intermedia y tercera intensa, con un límite estable desde entonces. Pueden aparecer de día y de noche, incluidas cuevas iluminadas.
 - **20 puntos de vida (10 corazones)** por trooper. El sol no les prende fuego.
-- **3 puntos de daño base (1,5 corazones)** por impacto: equivalente al ataque de un zombi sin arma en dificultad Normal contra un jugador sin protección.
+- Los troopers causan **3 puntos de daño base (1,5 corazones)** por impacto: equivalente al ataque de un zombi sin arma en dificultad Normal contra un jugador sin protección.
+- El bláster del jugador causa **10 puntos de daño (5 corazones)** por impacto: mata a un creeper normal con **2 disparos**, sin defensas ni efectos adicionales.
+- Los troopers tienen un **40 % de probabilidad de soltar un bláster** al morir. Tiene **131 puntos de durabilidad**, como una espada de piedra, y gasta uno por disparo o golpe cuerpo a cuerpo.
 - Un disparo cada **30 ticks (1,5 segundos a 20 TPS)**, con alcance de combate de 24 bloques.
 - **5 sonidos E-11**, recortados por disparo, elegidos aleatoriamente al disparar.
 - Atacan jugadores en Supervivencia/Aventura y otros mobs, incluidos animales, aldeanos y criaturas de otros mods que usen las clases habituales de Minecraft.
@@ -16,7 +18,9 @@ Mod para **Minecraft Java 1.20.1 con Fabric** que añade patrullas hostiles de *
 - **Cabeza de trooper equipable**: sirve de disfraz para que te ignoren; se fabrica con hierro y carbón o se consigue con un **30 % de probabilidad al matar un trooper**.
 - **21 clips de voz**: pausas de **8–18 segundos al patrullar** y de **1–3 segundos al combatir**, después de terminar la frase actual.
 - Voces al azar según el contexto, sin repetir inmediatamente el mismo clip. Cerca pueden hablar a la vez un trooper en patrulla o dos en combate.
+- Voces audibles hasta **48 bloques** y disparos hasta **64 bloques**, con sonido 3D que aumenta gradualmente al acercarse y disminuye al alejarse.
 - Efectos de disparo, impacto, daño y muerte; interfaz y subtítulos descriptivos en español e inglés.
+- Bláster 3D inspirado en la referencia E-11: cañón largo ventilado, mira telescópica, empuñadura y culata abierta. El jugador y todos los troopers comparten el mismo modelo.
 
 La formación se adapta al terreno mediante navegación normal: puede romperse temporalmente en lugares estrechos. Los grupos nacen completos; las bajas posteriores no se reponen. Las voces en inglés proceden del [video de stormtroopers indicado para este proyecto](https://www.youtube.com/watch?v=BQj6apGaxOY) y los disparos del [video del rifle E-11](https://www.youtube.com/watch?v=ZfUJvRCJpr4). Consulta [AUDIO_CREDITOS.txt](AUDIO_CREDITOS.txt).
 
@@ -41,6 +45,7 @@ Al iniciar se crea `config/tropercraft.json` en la instalación del juego o serv
   "maxTroopersPerPlayer": 40,
   "maxTroopersPerWorld": 160,
   "laserDamage": 3.0,
+  "playerLaserDamage": 10.0,
   "shotIntervalTicks": 30,
   "enableVoices": true,
   "voiceVolume": 0.85,
@@ -51,17 +56,51 @@ Al iniciar se crea `config/tropercraft.json` en la instalación del juego o serv
 }
 ```
 
-Cada **10 segundos** se realizan hasta **2 búsquedas de patrulla por jugador**, con probabilidad del **100 %** por búsqueda. Una prioriza superficie y la otra cuevas; si no encuentra espacio, cada una intenta el otro entorno. No se comprueban ni la hora ni la oscuridad: funcionan de día, de noche y con iluminación artificial en todos los biomas del Overworld.
+Con la configuración anterior, la presión aumenta así:
+
+| Etapa | Búsquedas por jugador | Probabilidad por búsqueda | Límite cercano por jugador | Techo del mundo |
+| --- | --- | --- | --- | --- |
+| Inicio y primera noche | 1 cada 60 segundos | 45 % | 6 troopers | 24 |
+| Segunda noche | 1 cada 30 segundos | 75 % | 12 troopers | 48 |
+| Tercera noche y siguientes | 2 cada 20 segundos | 100 % | 24 troopers | 96 |
+
+Estos son límites de población simultánea para autorizar nuevas patrullas, no
+cantidades garantizadas por noche. Los grupos siguen siendo de 3 a 5 miembros.
+Se usa el calendario del Overworld: la segunda etapa empieza en el tick 37000,
+la tercera en el 61000. Dormir cuenta el avance del calendario; amanecer no sube
+la etapa por sí solo. Los mundos antiguos comienzan en su etapa correspondiente.
+Después de la tercera noche la presión deja de aumentar. Cambiar el calendario
+con `/time set` también cambia la etapa.
+
+La búsqueda alterna su preferencia entre superficie y cuevas; si no encuentra
+espacio prueba el otro entorno. Pueden aparecer de día, de noche y con iluminación
+artificial en todos los biomas del Overworld.
 
 El centro se busca a 28–64 bloques en horizontal, dentro de 96 bloques de distancia del jugador. Las cuevas se buscan en toda la altura cercana que permita esa distancia. Se admiten caminos de tierra, cultivos, losas y escaleras, además de los suelos completos. Ningún miembro aparece a menos de 24 bloques de un jugador. Hace falta terreno transitable y espacio para el grupo completo, dentro de chunks cargados.
 
-El límite global natural es el menor entre `maxTroopersPerWorld` y `maxTroopersPerPlayer × jugadores elegibles`. También se aplica el límite por jugador en una caja de 96 bloques alrededor. Se cuentan los troopers cargados; estos límites son propios del mod e independientes del cupo de otros monstruos. Si no cabe el grupo completo o se alcanzó un límite, se omite esa oportunidad.
+El límite global natural es el menor entre el techo de la etapa y su límite por
+jugador multiplicado por los jugadores elegibles. También se aplica el límite
+por jugador en una caja de 96 bloques alrededor. Se cuentan los troopers cargados;
+estos límites son propios del mod e independientes del cupo de otros monstruos.
+Si no cabe el grupo completo o se alcanzó un límite, se omite esa oportunidad.
 
-Los valores iniciales permiten hasta 40 troopers con un jugador y un techo de 160 en el Overworld. `patrolsPerCycle` admite entre 1 y 4. Las configuraciones antiguas mantienen los campos ya guardados: para aplicar este perfil usa los valores anteriores. La configuración local de desarrollo `run/config/tropercraft.json` ya está actualizada.
+Los límites configurados actúan como techos adicionales: bajarlos reduce la
+población de cualquier etapa. El intervalo base se multiplica por 6, 3 o 2 y la
+probabilidad por 0,45, 0,75 o 1 según la etapa. Las búsquedas se limitan a 1, 1 o 2,
+sin superar `patrolsPerCycle`. La progresión también se aplica a configuraciones
+antiguas. `spawnChance=0` sigue impidiendo nuevas apariciones automáticas.
 
 Los cambios requieren **reiniciar el juego o servidor**. En multijugador manda la configuración del servidor. Pacífico, `doMobSpawning=false` y `spawn-monsters=false` bloquean las apariciones automáticas. No aparecen naturalmente en el Nether ni en el End. Conservan las reglas de desaparición de los mobs hostiles y no mantienen chunks cargados.
 
+`laserDamage` controla el daño de los troopers; `playerLaserDamage` controla el del
+jugador. Las configuraciones antiguas sin `playerLaserDamage` usan 10 por defecto.
+
 Cada trooper tiene sus propios tiempos y empieza a hablar tras un retardo aleatorio. Al detectar un enemigo acelera su próxima frase, respetando la que ya esté reproduciendo. Los intervalos son pausas después del clip, no su duración total; esperar turno entre vecinos puede alargarlos. `enableVoices=false` desactiva las frases y `voiceVolume` admite valores de 0 a 1. Las configuraciones anteriores funcionan con los valores nuevos predeterminados aunque todavía no tengan esos campos.
+
+Las voces comparten turnos entre troopers dentro de 48 bloques para reducir la
+superposición. Tanto las voces como los disparos se reproducen desde su posición
+real y se atenúan con la distancia; ampliar el alcance no aumenta el volumen
+máximo cercano. El alcance de los disparos también se aplica al bláster del jugador.
 
 Consulta [DETALLES_DEL_MOD.txt](DETALLES_DEL_MOD.txt) para conocer los límites de configuración, arquitectura, decisiones, pruebas y comprobaciones manuales.
 
@@ -83,7 +122,12 @@ Con trucos habilitados o permisos de operador de nivel 2, sobre suelo amplio en 
 
 `/stormpatrol` sin número crea 3 miembros; busca espacio unos 6 bloques delante del ejecutor. Las patrullas manuales respetan dimensión, dificultad y espacio, pero omiten probabilidad y límites de población automática. `/summon` y el huevo generan **un solo trooper** para inspección o construcción de escenarios.
 
-El bláster y la cabeza figuran en Combate y el huevo en Huevos generadores. El jugador puede disparar el arma con clic derecho; no consume munición ni durabilidad. El bláster no tiene receta y los troopers no sueltan su arma al morir.
+El bláster y la cabeza figuran en Combate y el huevo en Huevos generadores. El
+jugador dispara con clic derecho, sin munición, y consume un punto de durabilidad
+por disparo. Se rompe al agotar sus 131 usos; los golpes cuerpo a cuerpo también
+gastan uno. Creativo no consume durabilidad. No tiene receta: se consigue con un
+40 % de probabilidad al morir un trooper, con la durabilidad completa. Este sorteo
+es independiente del de la cabeza, no aumenta con Saqueo y respeta `doMobLoot`.
 
 ## Cabeza de trooper y disfraz
 
@@ -129,6 +173,10 @@ python3 tools/generate_sounds.py
 ```
 
 Los `.ogg` ya están incluidos; Python y ffmpeg no son requisitos para jugar ni compilar.
+
+El modelo del bláster ya está incluido en `assets/tropercraft-mod/models/item/blaster.json`.
+Se puede regenerar con `python3 tools/generate_blaster_model.py`: usa geometría nativa
+y texturas de Minecraft, sin paquetes de recursos ni librerías adicionales.
 
 `tools/import_voice_lines.py` prepara las voces desde una grabación local con ffmpeg: detecta pausas, recorta, nivela el volumen, convierte a Ogg mono y genera `voice_lines.json` y los eventos de sonido. El manifiesto guarda la fuente, los tiempos de corte y el contexto de cada clip. El TXT detalla cómo reproducir la importación. La grabación completa y los subtítulos del video no se incluyen en el repositorio.
 

@@ -49,8 +49,8 @@ public final class PatrolSpawner {
 	}
 
 	private static void tick(ServerWorld world) {
-		PatrolConfig config = PatrolConfig.get();
-		if (world.getTime() % (config.spawnIntervalSeconds * 20L) != 0
+		PatrolProgression.SpawnProfile profile = PatrolProgression.forTime(world.getTimeOfDay(), PatrolConfig.get());
+		if (world.getTime() % (profile.intervalSeconds() * 20L) != 0
 				|| !canSpawnNaturally(world)) return;
 		List<ServerPlayerEntity> players = world.getPlayers(player -> player.isAlive() && !player.isSpectator());
 		if (players.isEmpty()) return;
@@ -58,20 +58,21 @@ public final class PatrolSpawner {
 		for (Entity entity : world.iterateEntities()) {
 			if (entity instanceof StormtrooperEntity && entity.isAlive()) loadedTroopers++;
 		}
-		int populationCap = (int) Math.min(config.maxTroopersPerWorld,
-				(long) config.maxTroopersPerPlayer * players.size());
+		int populationCap = (int) Math.min(profile.worldCap(),
+				(long) profile.perPlayerCap() * players.size());
 		// Rotate the first player so that a shared population limit does not always favor the same player.
 		int offset = world.random.nextInt(players.size());
 		for (int index = 0; index < players.size(); index++) {
 			ServerPlayerEntity player = players.get((index + offset) % players.size());
 			int nearby = world.getEntitiesByClass(StormtrooperEntity.class, player.getBoundingBox().expand(96),
 					StormtrooperEntity::isAlive).size();
-			for (int wave = 0; wave < config.patrolsPerCycle; wave++) {
+			for (int wave = 0; wave < profile.patrolsPerCycle(); wave++) {
 				int size = MIN_PATROL_SIZE + world.random.nextInt(MAX_PATROL_SIZE - MIN_PATROL_SIZE + 1);
-				if (loadedTroopers + size > populationCap || nearby + size > config.maxTroopersPerPlayer) continue;
-				if (world.random.nextDouble() >= config.spawnChance) continue;
+				if (loadedTroopers + size > populationCap || nearby + size > profile.perPlayerCap()) continue;
+				if (world.random.nextDouble() >= profile.chance()) continue;
 				// Give both surface and underground a dedicated search; neither requires darkness.
-				boolean preferCave = wave % 2 == 1;
+				// With just one search, alternate the preferred environment each cycle.
+				boolean preferCave = (world.getTime() / (profile.intervalSeconds() * 20L) + wave) % 2 == 1;
 				for (int attempt = 0; attempt < SEARCH_ATTEMPTS; attempt++) {
 					double angle = world.random.nextDouble() * Math.PI * 2;
 					double radius = 28 + world.random.nextInt(37);

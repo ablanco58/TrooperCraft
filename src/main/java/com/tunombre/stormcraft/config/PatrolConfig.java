@@ -20,6 +20,7 @@ public final class PatrolConfig {
 	public int maxTroopersPerPlayer = 40;
 	public int maxTroopersPerWorld = 160;
 	public float laserDamage = 3.0F;
+	public float playerLaserDamage = 10.0F;
 	public int shotIntervalTicks = 30;
 	public boolean enableVoices = true;
 	public float voiceVolume = 0.85F;
@@ -59,6 +60,7 @@ public final class PatrolConfig {
 				|| maxTroopersPerPlayer < 5 || maxTroopersPerPlayer > 200
 				|| maxTroopersPerWorld < 5 || maxTroopersPerWorld > 1000
 				|| !Float.isFinite(laserDamage) || laserDamage <= 0 || laserDamage > 100
+				|| !Float.isFinite(playerLaserDamage) || playerLaserDamage <= 0 || playerLaserDamage > 100
 				|| shotIntervalTicks < 10 || shotIntervalTicks > 1200
 				|| !Float.isFinite(voiceVolume) || voiceVolume < 0 || voiceVolume > 1
 				|| minPatrolVoicePauseSeconds < 1 || maxPatrolVoicePauseSeconds > 300

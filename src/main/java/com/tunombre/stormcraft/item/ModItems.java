@@ -6,12 +6,13 @@ import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.SpawnEggItem;
+import net.minecraft.item.ToolMaterials;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 
 public final class ModItems {
 	public static final Item BLASTER = Registry.register(Registries.ITEM, TroperCraftMod.id("blaster"),
-			new BlasterItem(new Item.Settings().maxCount(1)));
+			new BlasterItem(new Item.Settings().maxDamage(ToolMaterials.STONE.getDurability())));
 	public static final Item TROOPER_HEAD = Registry.register(Registries.ITEM, TroperCraftMod.id("trooper_head"),
 			new TrooperHeadItem(new Item.Settings()));
 	public static final Item STORMTROOPER_SPAWN_EGG = Registry.register(Registries.ITEM,

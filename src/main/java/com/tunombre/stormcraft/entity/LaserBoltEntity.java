@@ -91,9 +91,12 @@ public final class LaserBoltEntity extends ProjectileEntity {
 	protected void onEntityHit(EntityHitResult hit) {
 		if (getWorld().isClient || isProtectedTarget(hit.getEntity())) return;
 		Entity owner = getOwner();
+		// Retain player damage even when a saved shot's owner is no longer loaded.
+		float damage = playerShot || owner instanceof PlayerEntity
+				? PatrolConfig.get().playerLaserDamage : PatrolConfig.get().laserDamage;
 		hit.getEntity().damage(owner instanceof LivingEntity living
 				? getDamageSources().mobProjectile(this, living) : getDamageSources().thrown(this, owner),
-				PatrolConfig.get().laserDamage);
+				damage);
 	}
 
 	@Override

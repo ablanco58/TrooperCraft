@@ -198,7 +198,7 @@ public class StormtrooperEntity extends HostileEntity implements RangedAttackMob
 		TrooperVoices.VoiceLine line = speech.tick(combat, random, () -> {
 			if (isSilent()) return false;
 			int maximumSpeaking = combat ? 2 : 1;
-			return getWorld().getEntitiesByClass(StormtrooperEntity.class, getBoundingBox().expand(16),
+			return getWorld().getEntitiesByClass(StormtrooperEntity.class, getBoundingBox().expand(ModSounds.VOICE_RANGE),
 					other -> other != this && other.isAlive() && other.speech.isSpeaking()).size() < maximumSpeaking;
 		});
 		if (line != null) playSound(line.sound(), PatrolConfig.get().voiceVolume, 1.0F);

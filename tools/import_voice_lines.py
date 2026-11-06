@@ -75,7 +75,8 @@ def main():
         clips.append({"id": name, "startSeconds": round(start, 4), "endSeconds": round(end, 4),
                       "durationTicks": math.ceil(length * 20), "mood": mood})
         sounds[name] = {"subtitle": "subtitles.tropercraft-mod.trooper_voice",
-                        "sounds": [{"name": f"tropercraft-mod:voices/{name}", "volume": 1.0}]}
+                        "sounds": [{"name": f"tropercraft-mod:voices/{name}", "volume": 1.0,
+                                    "attenuation_distance": 48}]}
         print(f"{name}: {start:6.2f}–{end:6.2f} s ({length:.2f} s), {mood}")
     manifest = {"source": {"url": args.source_url, "title": args.title, "author": args.author,
                             "durationSeconds": duration},

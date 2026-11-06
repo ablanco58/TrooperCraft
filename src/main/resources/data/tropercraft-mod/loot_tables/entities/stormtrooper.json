@@ -10,6 +10,15 @@
       "entries": [
         {"type": "minecraft:item", "name": "tropercraft-mod:trooper_head"}
       ]
+    },
+    {
+      "rolls": 1,
+      "conditions": [
+        {"condition": "minecraft:random_chance", "chance": 0.4}
+      ],
+      "entries": [
+        {"type": "minecraft:item", "name": "tropercraft-mod:blaster"}
+      ]
     }
   ]
 }

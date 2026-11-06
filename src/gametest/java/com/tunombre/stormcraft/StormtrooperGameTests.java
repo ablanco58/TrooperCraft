@@ -6,6 +6,7 @@ import com.tunombre.stormcraft.entity.StormtrooperEntity;
 import com.tunombre.stormcraft.entity.ai.PatrolMarchGoal;
 import com.tunombre.stormcraft.item.ModItems;
 import com.tunombre.stormcraft.world.PatrolSpawner;
+import com.tunombre.stormcraft.world.PatrolProgression;
 import com.tunombre.stormcraft.config.PatrolConfig;
 import com.tunombre.stormcraft.sound.TrooperSpeech;
 import com.tunombre.stormcraft.sound.TrooperVoices;
@@ -48,6 +49,43 @@ public class StormtrooperGameTests implements FabricGameTest {
 
 	private static List<StormtrooperEntity> patrolAt(TestContext context, BlockPos origin) {
 		return context.getWorld().getEntitiesByClass(StormtrooperEntity.class, new Box(origin).expand(5), Entity::isAlive);
+	}
+
+	@GameTest(templateName = EMPTY_STRUCTURE)
+	public void patrolPressureGrowsByNightAndStopsAtThird(TestContext context) {
+		PatrolConfig config = new PatrolConfig();
+		var first = PatrolProgression.forTime(13000, config);
+		var second = PatrolProgression.forTime(37000, config);
+		var third = PatrolProgression.forTime(61000, config);
+		context.assertTrue(first.perPlayerCap() == 6 && second.perPlayerCap() == 12 && third.perPlayerCap() == 24,
+				"La población debe pasar de pocas patrullas a una presión alta pero limitada");
+		context.assertTrue(first.intervalSeconds() > second.intervalSeconds()
+				&& second.intervalSeconds() > third.intervalSeconds()
+				&& first.chance() < second.chance() && second.chance() < third.chance(),
+				"Las búsquedas deben aumentar en frecuencia y probabilidad cada noche");
+		context.assertTrue(PatrolProgression.forTime(0, config).equals(first)
+				&& PatrolProgression.forTime(36999, config).equals(first)
+				&& PatrolProgression.forTime(60999, config).equals(second),
+				"El día inicial debe ser tranquilo y cada etapa debe cambiar al comenzar la noche siguiente");
+		context.assertTrue(PatrolProgression.forTime(24000L * 100 + 13000, config).equals(third),
+				"La dificultad no debe seguir aumentando después de la tercera noche");
+		context.complete();
+	}
+
+	@GameTest(templateName = EMPTY_STRUCTURE)
+	public void progressionRespectsConfiguredPopulationCeilings(TestContext context) {
+		PatrolConfig config = new PatrolConfig();
+		config.maxTroopersPerPlayer = 5;
+		config.maxTroopersPerWorld = 10;
+		config.patrolsPerCycle = 1;
+		config.spawnChance = 0;
+		for (long time : new long[] {13000, 37000, 61000}) {
+			var profile = PatrolProgression.forTime(time, config);
+			context.assertTrue(profile.perPlayerCap() == 5 && profile.worldCap() == 10
+					&& profile.patrolsPerCycle() == 1 && profile.chance() == 0,
+					"La progresión debe respetar los límites bajos y la desactivación de aparición configurados");
+		}
+		context.complete();
 	}
 
 	@GameTest(templateName = EMPTY_STRUCTURE)

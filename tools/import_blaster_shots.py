@@ -83,7 +83,8 @@ def main():
     path = ASSETS / "sounds.json"
     sounds = json.loads(path.read_text())
     sounds["blaster_shoot"] = {"subtitle": "subtitles.tropercraft-mod.blaster_shoot",
-                                "sounds": [f"tropercraft-mod:blaster/{clip['id']}" for clip in clips]}
+                                "sounds": [{"name": f"tropercraft-mod:blaster/{clip['id']}",
+                                            "attenuation_distance": 64} for clip in clips]}
     path.write_text(json.dumps(sounds, ensure_ascii=False, indent=2) + "\n")
     print(f"Integradas {len(clips)} variantes aisladas en blaster_shoot.")
 
