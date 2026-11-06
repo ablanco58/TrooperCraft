@@ -1,0 +1,16 @@
+{
+  "entity.tropercraft-mod.stormtrooper": "Stormtrooper",
+  "entity.tropercraft-mod.laser_bolt": "Laser bolt",
+  "item.tropercraft-mod.blaster": "Imperial blaster",
+  "item.tropercraft-mod.trooper_head": "Trooper Head",
+  "item.tropercraft-mod.trooper_head.disguise": "Stormtroopers ignore you while you wear it.",
+  "item.tropercraft-mod.stormtrooper_spawn_egg": "Stormtrooper Spawn Egg",
+  "subtitles.tropercraft-mod.blaster_shoot": "Blaster fires",
+  "subtitles.tropercraft-mod.laser_impact": "Laser hits",
+  "subtitles.tropercraft-mod.trooper_radio": "Stormtrooper radio crackles",
+  "subtitles.tropercraft-mod.trooper_voice": "Stormtrooper speaks",
+  "subtitles.tropercraft-mod.trooper_hurt": "Stormtrooper hurts",
+  "subtitles.tropercraft-mod.trooper_death": "Stormtrooper dies",
+  "commands.tropercraft-mod.patrol.success": "Created a patrol of %s stormtroopers.",
+  "commands.tropercraft-mod.patrol.failed": "Could not create the patrol: use the Overworld, leave Peaceful difficulty and find solid ground with enough room about 6 blocks ahead."
+}

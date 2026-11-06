@@ -1,6 +1,11 @@
 package com.tunombre.stormcraft;
 
 import net.fabricmc.api.ModInitializer;
+import com.tunombre.stormcraft.config.PatrolConfig;
+import com.tunombre.stormcraft.entity.ModEntities;
+import com.tunombre.stormcraft.item.ModItems;
+import com.tunombre.stormcraft.sound.ModSounds;
+import com.tunombre.stormcraft.world.PatrolSpawner;
 
 import net.minecraft.util.Identifier;
 
@@ -17,11 +22,12 @@ public class TroperCraftMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
-
-		LOGGER.info("Hello Fabric world!");
+		PatrolConfig.load();
+		ModSounds.register();
+		ModEntities.register();
+		ModItems.register();
+		PatrolSpawner.register();
+		LOGGER.info("TroperCraft: las patrullas imperiales están listas.");
 	}
 
 	public static Identifier id(String path) {

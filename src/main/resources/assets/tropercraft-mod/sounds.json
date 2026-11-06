@@ -1,0 +1,226 @@
+{
+  "blaster_shoot": {
+    "subtitle": "subtitles.tropercraft-mod.blaster_shoot",
+    "sounds": [
+      "tropercraft-mod:blaster/blaster_shot_001",
+      "tropercraft-mod:blaster/blaster_shot_002",
+      "tropercraft-mod:blaster/blaster_shot_003",
+      "tropercraft-mod:blaster/blaster_shot_004",
+      "tropercraft-mod:blaster/blaster_shot_005"
+    ]
+  },
+  "laser_impact": {
+    "subtitle": "subtitles.tropercraft-mod.laser_impact",
+    "sounds": [
+      "tropercraft-mod:laser_impact"
+    ]
+  },
+  "trooper_radio": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_radio",
+    "sounds": [
+      "tropercraft-mod:trooper_radio_1",
+      "tropercraft-mod:trooper_radio_2"
+    ]
+  },
+  "trooper_hurt": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_hurt",
+    "sounds": [
+      "tropercraft-mod:trooper_hurt"
+    ]
+  },
+  "trooper_death": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_death",
+    "sounds": [
+      "tropercraft-mod:trooper_death"
+    ]
+  },
+  "trooper_voice_001": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_001",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_002": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_002",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_003": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_003",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_004": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_004",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_005": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_005",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_006": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_006",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_007": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_007",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_008": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_008",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_009": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_009",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_010": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_010",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_011": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_011",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_012": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_012",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_013": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_013",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_014": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_014",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_015": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_015",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_016": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_016",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_017": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_017",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_018": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_018",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_019": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_019",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_020": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_020",
+        "volume": 1.0
+      }
+    ]
+  },
+  "trooper_voice_021": {
+    "subtitle": "subtitles.tropercraft-mod.trooper_voice",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:voices/trooper_voice_021",
+        "volume": 1.0
+      }
+    ]
+  }
+}

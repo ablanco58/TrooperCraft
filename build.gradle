@@ -21,6 +21,35 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+// A separate development-only mod runs integration tests inside a real Minecraft server.
+sourceSets {
+	gametest {
+		compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+		runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+	}
+}
+
+loom {
+	mods {
+		"tropercraft-mod" {
+			sourceSet sourceSets.main
+		}
+		"tropercraft-gametest" {
+			sourceSet sourceSets.gametest
+		}
+	}
+	runs {
+		gametest {
+			server()
+			name "TroperCraft GameTests"
+			source sourceSets.gametest
+			vmArg "-Dfabric-api.gametest"
+			vmArg "-Dfabric-api.gametest.report-file=${layout.buildDirectory.file('reports/gametest.xml').get().asFile.absolutePath}"
+			runDir "build/gametest"
+		}
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version

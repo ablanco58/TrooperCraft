@@ -1,0 +1,163 @@
+{
+  "source": {
+    "url": "https://www.youtube.com/watch?v=BQj6apGaxOY",
+    "title": "Star Wars Stormtrooper Sound Effects",
+    "author": "starwarsoundeffects",
+    "durationSeconds": 52.024313
+  },
+  "processing": {
+    "silenceSeconds": 0.6,
+    "noiseDb": -35,
+    "format": "Ogg Vorbis, mono, 44100 Hz",
+    "loudnessLufs": -18
+  },
+  "clips": [
+    {
+      "id": "trooper_voice_001",
+      "startSeconds": 1.8053,
+      "endSeconds": 3.8436,
+      "durationTicks": 41,
+      "mood": "combat"
+    },
+    {
+      "id": "trooper_voice_002",
+      "startSeconds": 4.4853,
+      "endSeconds": 6.2296,
+      "durationTicks": 35,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_003",
+      "startSeconds": 6.8589,
+      "endSeconds": 8.9367,
+      "durationTicks": 42,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_004",
+      "startSeconds": 9.658,
+      "endSeconds": 11.7137,
+      "durationTicks": 42,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_005",
+      "startSeconds": 12.8038,
+      "endSeconds": 14.5939,
+      "durationTicks": 36,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_006",
+      "startSeconds": 15.3767,
+      "endSeconds": 17.4382,
+      "durationTicks": 42,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_007",
+      "startSeconds": 17.9563,
+      "endSeconds": 18.6064,
+      "durationTicks": 14,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_008",
+      "startSeconds": 19.3452,
+      "endSeconds": 19.9434,
+      "durationTicks": 12,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_009",
+      "startSeconds": 21.0178,
+      "endSeconds": 22.5156,
+      "durationTicks": 30,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_010",
+      "startSeconds": 23.0582,
+      "endSeconds": 23.5355,
+      "durationTicks": 10,
+      "mood": "both"
+    },
+    {
+      "id": "trooper_voice_011",
+      "startSeconds": 24.3683,
+      "endSeconds": 27.7299,
+      "durationTicks": 68,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_012",
+      "startSeconds": 28.4573,
+      "endSeconds": 30.7078,
+      "durationTicks": 46,
+      "mood": "combat"
+    },
+    {
+      "id": "trooper_voice_013",
+      "startSeconds": 31.2532,
+      "endSeconds": 32.7373,
+      "durationTicks": 30,
+      "mood": "combat"
+    },
+    {
+      "id": "trooper_voice_014",
+      "startSeconds": 33.227,
+      "endSeconds": 35.5484,
+      "durationTicks": 47,
+      "mood": "combat"
+    },
+    {
+      "id": "trooper_voice_015",
+      "startSeconds": 36.1001,
+      "endSeconds": 36.9337,
+      "durationTicks": 17,
+      "mood": "combat"
+    },
+    {
+      "id": "trooper_voice_016",
+      "startSeconds": 37.4589,
+      "endSeconds": 38.1576,
+      "durationTicks": 14,
+      "mood": "combat"
+    },
+    {
+      "id": "trooper_voice_017",
+      "startSeconds": 38.8112,
+      "endSeconds": 39.8255,
+      "durationTicks": 21,
+      "mood": "both"
+    },
+    {
+      "id": "trooper_voice_018",
+      "startSeconds": 40.4577,
+      "endSeconds": 42.9849,
+      "durationTicks": 51,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_019",
+      "startSeconds": 43.8852,
+      "endSeconds": 45.1387,
+      "durationTicks": 26,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_020",
+      "startSeconds": 45.8608,
+      "endSeconds": 47.4051,
+      "durationTicks": 31,
+      "mood": "patrol"
+    },
+    {
+      "id": "trooper_voice_021",
+      "startSeconds": 48.0881,
+      "endSeconds": 49.5385,
+      "durationTicks": 30,
+      "mood": "combat"
+    }
+  ]
+}

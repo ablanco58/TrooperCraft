@@ -1,0 +1,9 @@
+{
+  "sources": [
+    {
+      "type": "minecraft:single",
+      "resource": "tropercraft-mod:entity/skin_trooper",
+      "sprite": "tropercraft-mod:item/trooper_head"
+    }
+  ]
+}

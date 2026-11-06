@@ -1,0 +1,16 @@
+{
+  "entity.tropercraft-mod.stormtrooper": "Stormtrooper",
+  "entity.tropercraft-mod.laser_bolt": "Disparo láser",
+  "item.tropercraft-mod.blaster": "Bláster imperial",
+  "item.tropercraft-mod.trooper_head": "Cabeza de trooper",
+  "item.tropercraft-mod.trooper_head.disguise": "Los stormtroopers te ignoran mientras la llevas puesta.",
+  "item.tropercraft-mod.stormtrooper_spawn_egg": "Generador de stormtrooper",
+  "subtitles.tropercraft-mod.blaster_shoot": "Disparo de bláster",
+  "subtitles.tropercraft-mod.laser_impact": "Impacto de láser",
+  "subtitles.tropercraft-mod.trooper_radio": "Comunicación de stormtrooper",
+  "subtitles.tropercraft-mod.trooper_voice": "Stormtrooper habla",
+  "subtitles.tropercraft-mod.trooper_hurt": "Stormtrooper herido",
+  "subtitles.tropercraft-mod.trooper_death": "Stormtrooper muere",
+  "commands.tropercraft-mod.patrol.success": "Se creó una patrulla de %s stormtroopers.",
+  "commands.tropercraft-mod.patrol.failed": "No se pudo crear la patrulla: usa el Overworld, sal de Pacífico y busca suelo sólido con espacio suficiente a unos 6 bloques delante."
+}

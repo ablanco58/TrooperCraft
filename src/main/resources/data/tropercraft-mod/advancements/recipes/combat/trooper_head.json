@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ingredients": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {"items": ["minecraft:iron_ingot"]},
+          {"items": ["minecraft:coal"]}
+        ]
+      }
+    }
+  },
+  "rewards": {"recipes": ["tropercraft-mod:trooper_head"]}
+}

@@ -1,0 +1,54 @@
+{
+  "source": {
+    "url": "https://www.youtube.com/watch?v=ZfUJvRCJpr4",
+    "title": "Star Wars E-11 Blaster Rifle Sound Effects (Battlefront II)",
+    "author": "StarWarsSFX",
+    "durationSeconds": 6.942771,
+    "decodedAudioSha256": "519ca17ebb535acc212528c98077b797469af341662591270fc780352030e9af"
+  },
+  "processing": {
+    "inputStartSeconds": 1.1,
+    "inputEndSeconds": 6.942771,
+    "silenceSeconds": 0.08,
+    "noiseDb": -35,
+    "targetPeakDb": -3,
+    "format": "Ogg Vorbis, mono, 44100 Hz"
+  },
+  "clips": [
+    {
+      "id": "blaster_shot_001",
+      "startSeconds": 1.1,
+      "endSeconds": 1.82858,
+      "durationSeconds": 0.72858,
+      "gainDb": -0.5
+    },
+    {
+      "id": "blaster_shot_002",
+      "startSeconds": 2.09279,
+      "endSeconds": 2.97154,
+      "durationSeconds": 0.87875,
+      "gainDb": 0.2
+    },
+    {
+      "id": "blaster_shot_003",
+      "startSeconds": 3.14979,
+      "endSeconds": 3.84375,
+      "durationSeconds": 0.69396,
+      "gainDb": 0.5
+    },
+    {
+      "id": "blaster_shot_004",
+      "startSeconds": 4.06108,
+      "endSeconds": 4.8974,
+      "durationSeconds": 0.83632,
+      "gainDb": -0.6
+    },
+    {
+      "id": "blaster_shot_005",
+      "startSeconds": 4.97937,
+      "endSeconds": 5.78479,
+      "durationSeconds": 0.80542,
+      "gainDb": 0.0
+    }
+  ]
+}

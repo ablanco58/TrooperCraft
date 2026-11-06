@@ -1,0 +1,586 @@
+TROPERCRAFT — EXPLICACIÓN COMPLETA DE LA IMPLEMENTACIÓN
+Minecraft Java 1.20.1 | Fabric | Identificador: tropercraft-mod
+
+1. IDEA Y ALCANCE
+
+El mod añade patrullas hostiles de stormtroopers que recorren el Overworld,
+usan armas láser y emiten efectos de radio y combate. Cada patrulla nace con
+3, 4 o 5 integrantes. Todos los stormtroopers son aliados, incluso cuando
+pertenecen a patrullas distintas.
+
+Se interpretó "matan a otros mods" como "atacan a otros mobs". Se consideran
+enemigos los jugadores en Supervivencia o Aventura y las criaturas que heredan
+de MobEntity: animales, aldeanos, monstruos y normalmente mobs de otros mods.
+No se atacan objetos tirados, soportes para armaduras ni jugadores en Creativo
+o Espectador. Los mobs invulnerables o protegidos por otros mods conservan
+sus defensas: este mod no intenta saltarse sus reglas.
+
+Se conserva el identificador tropercraft-mod y el paquete com.tunombre.stormcraft
+de la base existente. La skin de 64 x 64 aportada al proyecto se usa sin modificar
+sus píxeles, desde textures/entity/skin_trooper.png.
+
+2. VIDA, SOL Y DIFICULTAD
+
+Cada trooper tiene 20 puntos de vida, equivalentes a 10 corazones, como un zombi.
+La velocidad de movimiento base es 0,23 y el seguimiento tiene 32 bloques de
+alcance. La armadura de la skin es visual: no se añaden puntos de armadura real.
+
+La clase hereda de HostileEntity y no incorpora la lógica que prende fuego a
+zombis y esqueletos al sol. Por tanto puede sobrevivir de día. Esto no implica
+inmunidad al fuego: lava, fuego normal, caídas, asfixia y ataques aún hacen daño.
+
+En Pacífico no se crean patrullas y se conserva la desaparición normal de mobs
+hostiles. Al cambiar de dificultad se retoman las oportunidades periódicas,
+no se crea inmediatamente un grupo por ese cambio.
+
+3. BLÁSTER, PROYECTILES Y DAÑO
+
+El arma está equipada en la mano principal. La IA selecciona un objetivo visible,
+se aproxima si lo necesita y dispara cuando está a un máximo de 24 bloques.
+No se añade una meta de ataque cuerpo a cuerpo: su combate usa el bláster.
+
+Valores iniciales:
+  Vida: 20 puntos = 10 corazones.
+  Daño por impacto: 3 puntos base = 1,5 corazones.
+  Intervalo entre disparos: 30 ticks = 1,5 segundos a 20 TPS.
+  Velocidad inicial del láser: aproximadamente 2,4 bloques por tick.
+  Duración máxima del proyectil: 40 ticks, aproximadamente 2 segundos a 20 TPS.
+
+Los 3 puntos equivalen al golpe base de un zombi sin arma en dificultad Normal
+contra un jugador sin protección. Una patrulla entera sigue siendo más peligrosa
+que un zombi: varios miembros pueden disparar al mismo objetivo.
+
+Se utiliza la fuente de daño estándar mobProjectile. El daño contra un jugador
+causado por un mob se ajusta a la dificultad: con base 3 es 2,5 en Fácil, 3 en
+Normal y 4,5 en Difícil, antes de defensas. Armadura, escudos, encantamientos,
+resistencia y los periodos de invulnerabilidad tras golpes pueden modificarlo.
+Contra otros mobs se aplica el daño base y sus defensas particulares.
+El bláster disparado por un jugador no recibe el escalado de atacante mob.
+
+El láser es una entidad propia que viaja en línea recta y no tiene gravedad.
+El servidor calcula colisiones a lo largo del recorrido de cada tick, para
+detectar paredes aunque el proyectil avance varios bloques de una vez.
+Al impactar reproduce sonido y partículas y se elimina. Si no impacta caduca,
+para no llenar el mundo de disparos. No rompe bloques ni causa explosiones.
+
+Su geometría roja con núcleo claro permanece visible en la oscuridad. No emite
+luz dinámica sobre los bloques: el brillo es del dibujo del proyectil.
+
+4. POR QUÉ NO SE MATAN ENTRE ELLOS
+
+La alianza se protege en varias partes del código:
+  - La búsqueda de objetivos excluye a todos los stormtroopers.
+  - Asignar otro trooper como objetivo se rechaza.
+  - Se consideran compañeros de equipo entre patrullas distintas.
+  - Los láseres que no proceden de un jugador excluyen a los troopers de las
+    colisiones con entidades para conservar la protección entre compañeros.
+  - Se rechaza daño cuyo atacante u origen directo sea otro trooper.
+
+Un aliado que se cruza en la línea de tiro no recibe daño y el láser continúa.
+El bláster del jugador sí puede impactar y dañar a los stormtroopers, con el
+mismo daño base configurado para el arma. Esto funciona tanto con disfraz como
+sin él. La protección entre troopers se conserva: un láser de otro trooper no
+puede dañarlos. Los proyectiles guardan el indicador PlayerShot en NBT para
+recordar su origen aunque el propietario deje de estar disponible al cargarlos.
+
+5. MARCHA Y ORGANIZACIÓN DE LA PATRULLA
+
+Cada grupo recibe un UUID de patrulla. Cada miembro guarda ese identificador,
+el UUID del líder y una posición de formación de 0 a 4. La posición 0 es el
+líder; los demás buscan lugares detrás, alternando izquierda y derecha.
+
+El líder elige destinos cercanos de paseo y avanza. No tiene una ciudad ni una
+coordenada final asignada. Se aumentó la frecuencia con que intenta iniciar
+otro paseo para mantener actividad de patrulla.
+
+Los seguidores recalculan la navegación hacia su posición cada 10 ticks.
+Si no encuentran camino hacia esa posición aproximada, intentan navegar hacia
+el propio líder. Aumentan la velocidad cuando se quedan muy atrás. No se usa
+teletransporte ni se fuerzan chunks para reunirlos.
+
+La formación se adapta al terreno: obstáculos, desniveles y túneles pueden
+separarla temporalmente. Se utiliza la animación bípeda normal; no hay una
+animación militar con las piernas de todos sincronizadas.
+
+El combate tiene prioridad. Cada trooper puede detectar un objetivo propio,
+y los seguidores también pueden adoptar el objetivo del líder si queda dentro
+del alcance de seguimiento. Al terminar pueden volver a su lugar. El estado
+de ataque se sincroniza con el cliente para mostrar la pose de apuntar.
+
+Si el líder muere o deja de estar cargado, se busca un superviviente de la misma
+patrulla dentro de 48 bloques. Se elige el de menor posición de formación, con
+desempate estable por UUID. La resolución del líder se mantiene brevemente en
+caché para reducir consultas. Una patrulla dividida entre chunks descargados
+puede reorganizar sus subgrupos cargados por separado.
+
+La identidad, líder y posición se guardan en NBT, por lo que sobreviven al
+guardado del mundo. Eso no hace permanentes a las entidades: aún pueden morir
+o desaparecer con las reglas normales de distancia de los mobs hostiles.
+Los grupos se garantizan completos al nacer; las bajas no se reponen.
+
+6. APARICIÓN NATURAL EN GRUPOS COMPLETOS
+
+Se implementó un generador propio ejecutado desde los ticks del servidor.
+La tabla de aparición por biomas permite indicar mínimo y máximo, pero puede
+dejar grupos incompletos cuando fallan posiciones. Este generador busca primero
+sitio para todos y no deja una patrulla parcial si no encuentra espacio.
+
+Con los valores iniciales funciona así:
+  1) Cada 200 ticks, equivalentes a 10 segundos a 20 TPS, revisa las reglas.
+  2) Solo trabaja en minecraft:overworld, fuera de Pacífico, con aparición de
+     monstruos habilitada y doMobSpawning=true.
+  3) Considera jugadores vivos que no estén en Espectador. Creativo también
+     puede provocar aparición cercana, aunque no sea un objetivo de ataque.
+  4) Cuenta troopers vivos cargados y comprueba límites globales y locales.
+     El primer jugador evaluado rota para no favorecer siempre al mismo.
+  5) Para cada jugador hace hasta 2 búsquedas por ciclo, con probabilidad inicial
+     del 100 % cada una. En cada búsqueda elige al azar 3, 4 o 5 integrantes.
+  6) Prueba hasta 24 centros por búsqueda, a 28–64 bloques en horizontal.
+     La primera prioriza superficie y la segunda cuevas: hace 12 intentos en
+     el entorno preferido y, si no aparece el grupo, 12 en el otro entorno.
+  7) La superficie se localiza con el mapa de alturas sin contar las hojas.
+     En cuevas recorre la altura cercana dentro de un radio tridimensional
+     de 96 bloques del jugador, dentro de la altura del mundo y sin cielo visible.
+     Ya no queda limitada a 48 bloques por debajo y 24 por encima.
+  8) Busca posiciones para todos dentro de 4 bloques en horizontal del centro,
+     con hasta 2 bloques de diferencia vertical para adaptarse a desniveles.
+  9) Cada posición necesita suelo que soporte al mob, espacio para un cuerpo de
+     0,6 x 1,8 bloques, ausencia de líquidos y estar dentro del borde del mundo.
+     Se excluyen magma como suelo y fuego/nieve en polvo en los pies.
+     Se admiten caminos, tierra de cultivo, losas y escaleras: no se exige un
+     cubo completo como suelo. La entidad se acomoda a esa superficie al caer.
+ 10) Ningún miembro natural puede aparecer a menos de 24 bloques de un jugador
+     que no esté en Espectador. No se exige oscuridad.
+ 11) Si hay lugar para todos se inicializa y registra la patrulla. Si falla
+     el registro de algún miembro se descarta ese intento completo.
+
+No hay una lista de biomas permitidos: pueden aparecer en bosques, desiertos,
+montañas, aldeas, islas de hongos y cuevas si el terreno es válido. Las antorchas
+no impiden su aparición. Un túnel demasiado estrecho puede no admitir al grupo.
+No se colocan flotando, dentro de bloques ni bajo el agua.
+
+Las dos búsquedas cada 10 segundos no garantizan dos patrullas: dependen de la
+población, terreno, chunks y reglas. No se exige un nivel de luz ni una hora:
+se crean grupos tanto a pleno día como de noche, incluso con antorchas cerca.
+Si no hay cuevas accesibles puede usarse superficie como alternativa, y viceversa.
+Los chunks lejanos no se cargan para buscar posiciones. Se limita la distancia
+vertical para no crear grupos tan lejos que desaparezcan inmediatamente.
+
+7. POBLACIÓN Y RENDIMIENTO
+
+El límite global de nuevas apariciones es el menor de:
+  maxTroopersPerWorld
+  maxTroopersPerPlayer multiplicado por los jugadores elegibles
+
+Con valores iniciales equivale a 40 con un jugador, 80 con dos, 120 con tres
+y hasta 160 con cuatro o más. Además se cuentan los troopers dentro de una caja
+que amplía 96 bloques en todos los ejes la caja del jugador y se aplica el
+límite local de 40. Se cuenta a los troopers cargados, incluidos los manuales.
+
+Son límites para autorizar grupos nuevos. No se borran automáticamente troopers
+si baja el número de jugadores o varias patrullas se acercan a una misma persona.
+Los comandos y huevos pueden superar estos límites al crear entidades manuales.
+
+El mod tiene su propio cupo, independiente del espacio libre para otros monstruos
+vanilla. Sus entidades están en la categoría MONSTER y sí pueden influir en el
+cálculo vanilla de población al aparecer zombis y otros monstruos.
+
+No se fuerzan chunks. Los proyectiles caducan, las rutas se recalculan con pausa
+y las consultas de líder tienen caché. En servidores grandes debe ajustarse la
+población al rendimiento disponible. En sitios con mucha separación vertical,
+un mob puede desaparecer si queda fuera de la distancia normal de un jugador.
+
+8. ARCHIVO DE CONFIGURACIÓN
+
+Se crea config/tropercraft.json al iniciar. En desarrollo está bajo run/config/;
+las pruebas usan su propio archivo bajo build/gametest/config/.
+
+Contenido inicial:
+{
+  "spawnIntervalSeconds": 10,
+  "spawnChance": 1.0,
+  "patrolsPerCycle": 2,
+  "maxTroopersPerPlayer": 40,
+  "maxTroopersPerWorld": 160,
+  "laserDamage": 3.0,
+  "shotIntervalTicks": 30,
+  "enableVoices": true,
+  "voiceVolume": 0.85,
+  "minPatrolVoicePauseSeconds": 8,
+  "maxPatrolVoicePauseSeconds": 18,
+  "minCombatVoicePauseSeconds": 1,
+  "maxCombatVoicePauseSeconds": 3
+}
+
+Rangos admitidos:
+  spawnIntervalSeconds: entero de 5 a 3600, segundos de juego entre oportunidades.
+  spawnChance: número de 0 a 1, probabilidad por jugador y oportunidad.
+  patrolsPerCycle: entero de 1 a 4, búsquedas de patrulla por jugador y ciclo.
+  maxTroopersPerPlayer: entero de 5 a 200, límite por jugador.
+  maxTroopersPerWorld: entero de 5 a 1000, techo global cargado.
+  laserDamage: número mayor que 0 y menor o igual que 100, daño base.
+  shotIntervalTicks: entero de 10 a 1200, ticks entre disparos.
+  enableVoices: true o false para permitir o detener nuevas frases.
+  voiceVolume: número de 0 a 1, volumen de las voces (inicial 0,85).
+  minPatrolVoicePauseSeconds / maxPatrolVoicePauseSeconds: enteros de 1 a 300,
+    mínimo y máximo de la pausa entre frases al patrullar, con mínimo <= máximo.
+  minCombatVoicePauseSeconds / maxCombatVoicePauseSeconds: enteros de 1 a 120,
+    mínimo y máximo de la pausa entre frases en combate, con mínimo <= máximo.
+
+La vida de 20 y el grupo inicial de 3 a 5 permanecen fijos en código.
+Con menos de 20 TPS, los intervalos tardan más segundos reales.
+
+El perfil inicial ahora usa spawnIntervalSeconds=10, spawnChance=1.0 y
+patrolsPerCycle=2. Para aumentar todavía más la frecuencia pueden ajustarse
+el intervalo o las búsquedas, conservando límites de población. spawnChance=0
+detiene nuevas patrullas automáticas; no elimina las que ya existen.
+
+La configuración se lee al iniciar; /reload no la recarga. Reinicia el juego
+o servidor después de editarla. En multijugador la aparición, IA, daño y
+enfriamiento efectivo del arma los controla la configuración del servidor.
+
+Si faltan campos se mantienen sus valores iniciales. Si el archivo está vacío,
+mal formado o contiene valores fuera de rango, se conserva intacto, se registra
+el error y se utilizan valores predeterminados.
+
+Los valores ya escritos en una configuración antigua no se sustituyen por los
+nuevos automáticamente. En este proyecto se actualizó run/config/tropercraft.json
+al perfil de 10 segundos, probabilidad 1, dos búsquedas y límites 40/160,
+manteniendo las demás opciones locales. Otros servidores pueden copiar esos
+campos del ejemplo para adoptar la misma frecuencia.
+
+9. VOCES, EFECTOS DE SONIDO Y RECURSOS VISUALES
+
+Se añadieron 21 clips de voz recortados del video facilitado:
+  https://www.youtube.com/watch?v=BQj6apGaxOY
+  Título: Star Wars Stormtrooper Sound Effects
+  Canal: starwarsoundeffects
+  Duración de la fuente: aproximadamente 52 segundos.
+
+Los cortes usan pausas de al menos 0,6 segundos a -35 dB y pequeños márgenes
+antes y después para conservar los inicios y finales. Cada clip se convierte
+a Ogg Vorbis mono, 44100 Hz, con nivelación a -18 LUFS y fundidos breves para
+evitar chasquidos. Los 21 archivos están en sounds/voices/. La grabación completa
+y los subtítulos descargados solo se utilizaron temporalmente para preparar los
+cortes: no forman parte del repositorio ni del JAR.
+
+voice_lines.json documenta la fuente, los tiempos de entrada y salida, la duración
+en ticks y el contexto de cada clip: patrol, combat o both. Los clips de patrulla
+y combate se eligen según el estado del mob; algunos sirven para ambos contextos.
+No se tradujeron ni sintetizaron voces nuevas: conservan el inglés del video.
+Los subtítulos del juego describen que habla un stormtrooper, sin transcribir
+las frases. Los créditos de procedencia se guardan en AUDIO_CREDITOS.txt.
+
+Cada trooper tiene su propio temporizador:
+  - Primera frase tras un retardo aleatorio de 2–8 segundos.
+  - Patrulla: pausa aleatoria de 8–18 segundos después de terminar el clip.
+  - Combate: pausa aleatoria de 1–3 segundos después de terminar el clip.
+  - Al detectar un enemigo se adelanta la próxima frase a aproximadamente un
+    segundo, pero nunca se interrumpe ni solapa una frase propia en curso.
+  - Al volver a patrulla se recupera la pausa larga.
+
+La duración real del clip y un margen de 4 ticks se incluyen en la espera.
+Por ejemplo, una frase de 2 segundos con una pausa de combate de 1 segundo
+deja aproximadamente 3,2 segundos entre comienzos de frases a 20 TPS.
+No se repite inmediatamente el último clip del mismo trooper cuando existen
+otras opciones en su contexto. El tono de voz se conserva a velocidad normal.
+
+Para que una patrulla no sea una mezcla de cinco frases simultáneas, cerca de
+16 bloques se permite hablar a uno en patrulla o dos en combate. El resto espera
+otro turno breve y vuelve a intentarlo. Esto también evita saturación cuando
+dos patrullas se cruzan. Con muchos vecinos, la espera real puede aumentar.
+Las voces se emiten desde el servidor y se oyen en 3D desde la posición del mob,
+con rango de sonido de 24 bloques. No hay que tener conexión a YouTube al jugar.
+
+Se desactivó el sonido ambiental aleatorio vanilla para que no añada frases
+por fuera de ese control. Las voces sustituyen al ambiente de radio sintética
+durante la patrulla. Los efectos originales de impacto, daño y muerte
+se conservan. Los dos sonidos de radio sintética siguen disponibles como recursos,
+pero ya no son el ambiente automático del trooper.
+
+Las voces y los sonidos de troopers usan Criaturas hostiles en el menú de volumen;
+el bláster del jugador usa Jugadores. Hay textos y subtítulos descriptivos en
+es_es e inglés en_us. enableVoices=false o voiceVolume=0 impiden empezar nuevas
+frases, sin quitar los disparos. Cambiar el archivo requiere reiniciar.
+Los archivos de configuración anteriores heredan los valores iniciales nuevos;
+se pueden añadir esos campos al JSON para personalizarlos.
+
+Para reproducir los cortes desde una copia local de la misma grabación:
+  python3 tools/import_voice_lines.py /ruta/audio.wav \
+    --source-url 'https://www.youtube.com/watch?v=BQj6apGaxOY' \
+    --title 'Star Wars Stormtrooper Sound Effects' \
+    --author starwarsoundeffects \
+    --combat-clips 1,12,13,14,15,16,21 --shared-clips 10,17
+
+El script regenera los clips, el manifiesto y sus eventos en sounds.json.
+tools/generate_sounds.py sigue regenerando solo los siete efectos sintéticos
+originales, aunque los disparos sintéticos ya no están conectados al arma.
+Ambos requieren Python 3 y ffmpeg para preparar audio; no para jugar
+ni para compilar, porque los OGG están incluidos.
+
+DISPAROS E-11 DEL SEGUNDO VIDEO
+
+Fuente: https://www.youtube.com/watch?v=ZfUJvRCJpr4
+Título: Star Wars E-11 Blaster Rifle Sound Effects (Battlefront II)
+Canal: StarWarsSFX. Duración: aproximadamente 7 segundos.
+
+Se separaron 5 disparos aislados de aproximadamente 0,69 a 0,88 segundos.
+Se omitió el tramo inicial anterior a 1,1 segundos para usar solamente los
+disparos con inicio y cola individual claramente separados en la señal.
+Los cortes usan pausas de al menos 0,08 segundos a -35 dB, con márgenes cortos
+y un fundido al final para no producir chasquidos. Se conserva la cola del
+disparo, se convierte a mono de 44100 Hz y se nivela el pico alrededor de -3 dB.
+
+Cada archivo está en sounds/blaster/blaster_shot_001.ogg hasta 005. El evento
+blaster_shoot elige una de esas cinco variantes al disparar, tanto si lo hace
+un stormtrooper como si el jugador usa el bláster. No se reproduce el video
+completo ni una secuencia de tiros por cada ataque. La cadencia y el daño no
+cambian. Los efectos originales de impacto y las 21 voces se conservan.
+
+blaster_shots.json documenta procedencia, tiempos de corte y ajustes de volumen.
+Para regenerarlos desde una copia local de la grabación:
+  python3 tools/import_blaster_shots.py /ruta/disparos.wav \
+    --source-url 'https://www.youtube.com/watch?v=ZfUJvRCJpr4' \
+    --title 'Star Wars E-11 Blaster Rifle Sound Effects (Battlefront II)' \
+    --author StarWarsSFX --start 1.1
+
+Ese importador cambia únicamente el banco de disparos; no sustituye voces ni
+otros sonidos. La grabación completa no se incluye en el repositorio.
+
+La skin usa un modelo humano con capas externas. El bláster tiene geometría 3D
+en un modelo JSON y usa texturas vanilla. No se requieren librerías adicionales
+de animación ni paquetes de recursos externos.
+
+10. COMANDOS Y OBJETOS PARA PROBAR
+
+Con trucos habilitados o permisos de operador de nivel 2:
+  /difficulty normal
+  /gamerule doMobSpawning true
+  /stormpatrol 3
+  /stormpatrol 4
+  /stormpatrol 5
+
+Sin argumento, /stormpatrol equivale a tamaño 3. Busca sitio unos 6 bloques
+delante del ejecutor y a una altura parecida. Úsalo en suelo amplio. Si falla,
+informa que hace falta espacio, Overworld y una dificultad distinta de Pacífico.
+Desde consola puede usarse /execute positioned X Y Z run stormpatrol 5.
+
+El comando respeta dimensión, dificultad y posiciones seguras, pero omite los
+límites de población, la probabilidad y la distancia mínima al jugador. Permite
+hacer pruebas aunque doMobSpawning esté desactivado.
+
+Para un trooper u objeto individual:
+  /summon tropercraft-mod:stormtrooper ~ ~ ~
+  /give @s tropercraft-mod:stormtrooper_spawn_egg
+  /give @s tropercraft-mod:blaster
+  /give @s tropercraft-mod:trooper_head
+
+/summon y el huevo crean un solo miembro, no una patrulla. Al ser mecanismos
+vanilla pueden invocarse también en otras dimensiones; eso no activa allí
+la aparición automática del mod.
+
+El bláster se usa con clic derecho y el intervalo configurado. No consume
+munición ni durabilidad. No tiene receta de fabricación en esta versión.
+Está en Combate junto con la cabeza de trooper; el huevo, en Huevos generadores.
+Los troopers no sueltan el arma, pero pueden soltar una cabeza con un 30 % de
+probabilidad cuando la baja se atribuye a un jugador. Mantienen 5 puntos base de experiencia
+cuando se cumplen las condiciones normales de Minecraft para soltar experiencia.
+
+11. ORGANIZACIÓN DEL CÓDIGO
+
+TroperCraftMod: inicializa configuración, sonidos, entidades, objetos y generador.
+config/PatrolConfig: creación, lectura, validación y errores de configuración.
+entity/ModEntities: registro de tipos y atributos.
+entity/StormtrooperEntity: vida, objetivos, armas, alianzas, líder, sonidos y NBT.
+entity/LaserBoltEntity: trayectoria, impacto, daño, partículas y caducidad.
+entity/ai/PatrolMarchGoal: posiciones y navegación de seguidores.
+world/PatrolSpawner: oportunidades, posiciones, límites y comando /stormpatrol.
+item/ModItems y BlasterItem: registros, pestañas de objetos y uso del bláster.
+item/TrooperHeadItem: casco de disfraz, estadísticas de hierro y texto de ayuda.
+sound/ModSounds: registro de los eventos de sonido.
+sound/TrooperVoices: carga el manifiesto y registra cada voz y su duración.
+sound/TrooperSpeech: temporizador individual, contexto y control de solapamiento.
+client/TroperCraftClient: registra renderizadores solo en el cliente.
+client/StormtrooperRenderer: skin y pose del arma.
+client/LaserBoltRenderer: geometría luminosa del disparo.
+client/TrooperHeadArmorRenderer: modelo equipado de la cabeza con la skin existente.
+
+Las clases comunes no dependen del renderizado, lo que permite un servidor
+dedicado sin clases del cliente. El mixin de ejemplo quedó sin declarar en
+fabric.mod.json; no interviene en esta implementación.
+
+12. COMPILAR E INSTALAR
+
+El mod se compila a bytecode de Java 17. El entorno probado usa JDK 25 para
+ejecutar Gradle y Loom, igual que la configuración de GitHub Actions.
+Se retiró la ruta personal absoluta de Java de gradle.properties para que
+el repositorio funcione en otras máquinas. Configura JAVA_HOME al JDK 25 o
+indica -Dorg.gradle.java.home=/ruta/al/jdk-25 al ejecutar Gradle.
+
+Desde la raíz:
+  ./gradlew build
+  ./gradlew runGametest
+  ./gradlew runClient
+
+En Windows usa gradlew.bat. La primera vez se descargan dependencias; después
+puede usarse --offline si ya están almacenadas.
+
+Instala build/libs/tropercraft-mod-1.0.0.jar en mods/ junto con Fabric API para
+Minecraft 1.20.1. No se instala el archivo terminado en -sources.jar.
+Se probó con Fabric Loader 0.20.1 y Fabric API 0.92.12+1.20.1.
+En multijugador, servidor y clientes necesitan el mod y Fabric API.
+
+13. PRUEBAS Y VALIDACIÓN
+
+src/gametest contiene un mod de pruebas separado, que no se empaqueta en el JAR
+instalable. ./gradlew runGametest inicia un servidor real sin ventana, crea un
+mundo aislado bajo build/gametest/ y escribe build/reports/gametest.xml.
+No utiliza los mundos del usuario. GitHub Actions ejecuta build y runGametest.
+
+Las pruebas verifican:
+  - Vida, arma, aliados y exclusión de Creativo.
+  - Daño de 3 puntos contra un jugador sin armadura en Normal.
+  - Creación de grupos de 3, 4 y 5, y rechazo de otros tamaños.
+  - Identidad y posición de formación conservadas en NBT.
+  - Ausencia de patrullas parciales cuando falta sitio.
+  - Aparición bajo techo, reglas y exclusión de Nether y End.
+  - Supervivencia al sol a mediodía.
+  - Daño real del láser y paso por aliados sin herirlos.
+  - Bloqueo de los disparos por paredes.
+  - Búsqueda y disparo autónomos contra otro mob.
+  - Navegación de seguidores y reemplazo del líder.
+  - Desplazamiento real de un seguidor hacia su formación.
+  - Registro del banco de voces y selección según contexto.
+  - Frecuencia de voz de combate superior a la de patrulla.
+  - Ausencia de repetición inmediata y respeto de la duración de los clips.
+  - Cambio a combate sin cortar la frase en curso.
+  - Respeto del turno de voz y de la opción de desactivar voces.
+  - Emisión real de una frase desde el tick del trooper en el servidor.
+  - Creación natural de patrullas completas tanto al mediodía como de noche.
+  - Búsqueda de superficie desde profundidad y de cuevas fuera del antiguo
+    margen vertical, respetando la distancia cercana al jugador.
+  - Suelos válidos de caminos, tierra de cultivo, losas y escaleras.
+  - Disfraz activo únicamente en la ranura de la cabeza.
+  - Equipado con clic derecho y estadísticas equivalentes al casco de hierro.
+  - Cancelación de persecución y ataques al equiparse el disfraz durante un combate.
+  - Receta real de 5 lingotes de hierro y 1 carbón mineral.
+  - Muestreo del botín cerca del 30 % y ausencia de cabezas sin baja de jugador.
+  - Daño real del bláster del jugador contra troopers con y sin disfraz.
+  - Persistencia del origen del proyectil del jugador al guardar y cargar.
+
+Las pruebas no sustituyen jugar para revisar estética, mezcla de audio,
+frecuencia percibida o navegación en terrenos complejos. No se ha hecho una
+prueba de carga multijugador ni compatibilidad con todos los mods posibles.
+
+Guía manual recomendada:
+  1) Arranca runClient y crea un mundo de prueba con trucos.
+  2) Usa Normal, /time set day y /stormpatrol 5 en una llanura despejada.
+  3) En Creativo observa la skin, el arma y la reunión de los miembros.
+  4) Invoca una vaca cerca para ver detección y disparos contra otros mobs.
+  5) En Supervivencia sin armadura comprueba daño y sonido de los disparos.
+  6) Interpone otro trooper y después una pared para revisar las colisiones.
+  7) Elimina al líder y observa la reorganización.
+  8) Guarda y vuelve a entrar para comprobar la conservación de la patrulla.
+  9) Prueba /stormpatrol 3 en una cueva iluminada con espacio suficiente.
+ 10) Recorre terreno con doMobSpawning=true para observar aparición natural.
+11) Comprueba subtítulos y volúmenes de Criaturas hostiles y Jugadores.
+12) Escucha las frases en Creativo sin enemigos; al colocar un enemigo o pasar
+    a Supervivencia debe aumentar claramente la frecuencia de voz.
+
+14. CONTENIDO QUE NO FORMA PARTE DE ESTA VERSIÓN
+
+No se añadieron vehículos, estructuras, misiones, munición ni animaciones
+militares sincronizadas. Sí hay una receta y botín para la cabeza de disfraz.
+Las voces ahora proceden del
+video pedido por el usuario y los disparos del segundo video E-11. Los efectos
+de impacto, daño y muerte siguen siendo sintéticos.
+La licencia CC0 del código no se extiende a esos clips de terceros.
+
+README.md presenta el proyecto y su uso para el repositorio Git. Este TXT
+explica las decisiones y el funcionamiento en detalle. Preparar estos archivos
+no crea commits ni publica o sube cambios al repositorio remoto.
+
+15. CABEZA DE TROOPER: CRAFTEO, BOTÍN Y DISFRAZ
+
+Objeto: tropercraft-mod:trooper_head
+Nombre en español: Cabeza de trooper.
+
+Se equipa en la ranura HEAD, igual que un casco. Puede colocarse desde el
+inventario o con clic derecho y aparece en la pestaña Combate. Hereda las
+estadísticas, durabilidad, encantamientos y reparación con hierro del casco
+de hierro. El aspecto es una cabeza de trooper: tanto el modelo del objeto
+como el equipado reutilizan la textura existente sin modificar sus píxeles.
+assets/minecraft/atlases/blocks.json añade esa textura al atlas del inventario
+con el identificador tropercraft-mod:item/trooper_head. Es necesario porque
+las texturas de entidades no se incluyen automáticamente en ese atlas.
+El modelo del objeto utiliza ese identificador para evitar la textura ausente.
+El renderizador exclusivo del cliente dibuja la cabeza y su capa exterior
+ligeramente ampliadas para cubrir la cabeza y el pelo del jugador.
+
+RECETA
+En una mesa de trabajo de 3 x 3 se usan 5 lingotes de hierro y un carbón mineral:
+
+  Hierro   Hierro   Hierro
+  Hierro   Carbón   Hierro
+  Vacío    Vacío    Vacío
+
+Es el patrón del casco de hierro, con carbón en el hueco central. Produce una
+cabeza nueva. Se acepta minecraft:coal; minecraft:charcoal no sustituye ese
+ingrediente. La receta del casco de hierro normal sigue funcionando. El libro
+desbloquea la receta del disfraz al tener hierro y carbón en el inventario.
+
+BOTÍN
+La tabla de botín del stormtrooper tiene un sorteo de probabilidad 0,3 (30 %),
+condicionado a una baja atribuida a un jugador. Si sale favorable entrega una
+sola cabeza nueva. No se añade como equipo del mob, evitando duplicar el botín
+por dos mecanismos distintos. Cada baja se sortea independientemente: diez
+bajas no garantizan tres cabezas. Saqueo no modifica la probabilidad.
+
+Se utiliza la condición vanilla killed_by_player: cuenta la atribución de baja
+que hace Minecraft, incluido su margen de crédito tras un golpe del jugador.
+Morir por el entorno sin una baja atribuida a jugador no produce la cabeza.
+Como el resto del botín normal, requiere que doMobLoot esté activado.
+La entrega usa la tabla estándar, por lo que otros datapacks que sustituyan
+esa tabla también pueden modificar este botín.
+
+DISFRAZ
+El servidor comprueba el objeto equipado en la ranura de la cabeza al decidir
+si un jugador es enemigo. Llevar la cabeza en la mano, inventario u otra ranura
+no sirve. Un casco de hierro normal tampoco sirve.
+
+Mientras la cabeza esté puesta:
+  - No te eligen como objetivo, incluso si estás en Supervivencia o Aventura.
+  - Si ya eras su objetivo, se borra y se detiene la ruta de persecución.
+  - La función de disparo también vuelve a comprobar el disfraz, para impedir
+    un tiro pendiente durante el cambio de equipo.
+  - Los proyectiles de stormtroopers atraviesan al jugador disfrazado sin
+    dañarlo. Esta exclusión no se extiende al bláster disparado por otro jugador.
+  - Los seguidores no adoptan un objetivo disfrazado de su líder.
+  - Golpear a un trooper no rompe el disfraz en esta implementación.
+
+Al quitarse la cabeza o agotarse su durabilidad, el jugador vuelve a ser un
+objetivo válido. Eso no fuerza un disparo instantáneo: la IA necesita detectarlo
+y cumplir sus condiciones normales de alcance y visión. El disfraz no cambia
+la agresividad de zombis, esqueletos u otros enemigos.
+
+El bláster mantiene su receta ausente y no cae como botín: esta incorporación
+solo añade una receta y un objeto de equipo para la cabeza.
+
+ARCHIVOS RELEVANTES
+  item/TrooperHeadItem.java: estadísticas y detección del objeto equipado.
+  client/TrooperHeadArmorRenderer.java: aspecto al llevarlo puesto.
+  assets/tropercraft-mod/models/item/trooper_head.json: objeto 3D del inventario.
+  data/tropercraft-mod/recipes/trooper_head.json: receta con hierro y carbón.
+  data/tropercraft-mod/advancements/recipes/combat/trooper_head.json: libro.
+  data/tropercraft-mod/loot_tables/entities/stormtrooper.json: probabilidad 30 %.
+  src/gametest/.../TrooperHeadGameTests.java: pruebas de uso, receta, IA y botín.
+
+PARA PROBAR
+Reinicia el cliente con runClient y usa:
+  /give @s tropercraft-mod:trooper_head
+  /gamemode survival
+
+Equipa la cabeza antes de acercarte a una patrulla. Quítala para comprobar que
+vuelves a ser un objetivo y vuelve a ponértela para detener la persecución.
+Usa la vista en tercera persona para revisar el casco y fabrica otra en una
+mesa para verificar el patrón. Mata varios troopers para observar el botín.

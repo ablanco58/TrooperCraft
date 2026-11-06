@@ -1,0 +1,36 @@
+VOCES Y DISPAROS DE STORMTROOPERS — PROCEDENCIA
+
+Fuente facilitada por el usuario:
+https://www.youtube.com/watch?v=BQj6apGaxOY
+Título: Star Wars Stormtrooper Sound Effects
+Canal: starwarsoundeffects
+
+Se prepararon 21 clips en inglés, cortados por pausas, nivelados y convertidos
+a Ogg Vorbis mono de 44100 Hz para reproducirlos desde las entidades del mod.
+
+Recursos: src/main/resources/assets/tropercraft-mod/sounds/voices/
+Tiempos y contextos: src/main/resources/assets/tropercraft-mod/voice_lines.json
+Importador reproducible: tools/import_voice_lines.py
+
+DISPAROS E-11
+
+Segunda fuente facilitada por el usuario:
+https://www.youtube.com/watch?v=ZfUJvRCJpr4
+Título: Star Wars E-11 Blaster Rifle Sound Effects (Battlefront II)
+Canal: StarWarsSFX
+
+Se prepararon 5 disparos aislados, separados por pausas y convertidos a Ogg
+Vorbis mono de 44100 Hz. El evento blaster_shoot selecciona uno por ataque.
+Se omitió el tramo inicial anterior a 1,1 segundos para usar tiros separados.
+
+Recursos: src/main/resources/assets/tropercraft-mod/sounds/blaster/
+Tiempos y procesamiento: src/main/resources/assets/tropercraft-mod/blaster_shots.json
+Importador reproducible: tools/import_blaster_shots.py
+
+Estos clips son material de terceros. La licencia CC0 del código de este
+proyecto no atribuye ni concede derechos sobre esas grabaciones.
+La grabación completa y sus subtítulos no se incluyen en el repositorio.
+
+Los efectos sintéticos de impacto, radio, daño y muerte fueron generados por
+tools/generate_sounds.py y son recursos separados. Los dos disparos sintéticos
+de la primera versión permanecen como archivos, pero el arma usa el banco E-11.

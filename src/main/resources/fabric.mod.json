@@ -3,25 +3,21 @@
 	"id": "tropercraft-mod",
 	"version": "${version}",
 	"name": "TroperCraft-Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Patrullas de 3 a 5 stormtroopers con blásteres láser y sonidos originales por todo el Overworld, incluidas las cuevas.",
 	"authors": [
-		"Me!"
+		"TroperCraft"
 	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
 	"license": "CC0-1.0",
 	"icon": "assets/tropercraft-mod/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
 			"com.tunombre.stormcraft.TroperCraftMod"
+		],
+		"client": [
+			"com.tunombre.stormcraft.client.TroperCraftClient"
 		]
 	},
-	"mixins": [
-		"tropercraft-mod.mixins.json"
-	],
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "~1.20.1",
