@@ -1,4 +1,14 @@
 {
+  "star_destroyer_engine": {
+    "subtitle": "subtitles.tropercraft-mod.star_destroyer_engine",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:ship/star_destroyer_engine",
+        "attenuation_distance": 320,
+        "stream": false
+      }
+    ]
+  },
   "blaster_shoot": {
     "subtitle": "subtitles.tropercraft-mod.blaster_shoot",
     "sounds": [
@@ -256,6 +266,25 @@
         "name": "tropercraft-mod:voices/trooper_voice_021",
         "volume": 1.0,
         "attenuation_distance": 48
+      }
+    ]
+  },
+  "star_destroyer_encounter": {
+    "subtitle": "subtitles.tropercraft-mod.star_destroyer_encounter",
+    "sounds": [
+      {
+        "name": "tropercraft-mod:ship/star_destroyer_encounter",
+        "attenuation_distance": 192,
+        "stream": false
+      }
+    ]
+  },
+  "star_destroyer_hurt": {
+    "subtitle": "subtitles.tropercraft-mod.star_destroyer_hurt",
+    "sounds": [
+      {
+        "name": "minecraft:random/anvil_land",
+        "attenuation_distance": 160
       }
     ]
   }

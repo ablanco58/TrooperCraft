@@ -7,6 +7,8 @@ import com.tunombre.stormcraft.entity.ai.PatrolMarchGoal;
 import com.tunombre.stormcraft.item.ModItems;
 import com.tunombre.stormcraft.world.PatrolSpawner;
 import com.tunombre.stormcraft.world.PatrolProgression;
+import com.tunombre.stormcraft.world.FirstEncounterState;
+import com.tunombre.stormcraft.world.ExplorationSpawnState;
 import com.tunombre.stormcraft.config.PatrolConfig;
 import com.tunombre.stormcraft.sound.TrooperSpeech;
 import com.tunombre.stormcraft.sound.TrooperVoices;
@@ -52,23 +54,110 @@ public class StormtrooperGameTests implements FabricGameTest {
 	}
 
 	@GameTest(templateName = EMPTY_STRUCTURE)
-	public void patrolPressureGrowsByNightAndStopsAtThird(TestContext context) {
+	public void patrolPressureGrowsByNightAndStopsAtFifth(TestContext context) {
 		PatrolConfig config = new PatrolConfig();
 		var first = PatrolProgression.forTime(13000, config);
 		var second = PatrolProgression.forTime(37000, config);
 		var third = PatrolProgression.forTime(61000, config);
-		context.assertTrue(first.perPlayerCap() == 6 && second.perPlayerCap() == 12 && third.perPlayerCap() == 24,
+		var fourth = PatrolProgression.forTime(85000, config);
+		var fifth = PatrolProgression.forTime(109000, config);
+		context.assertTrue(first.perPlayerCap() == 6 && second.perPlayerCap() == 10 && third.perPlayerCap() == 14
+				&& fourth.perPlayerCap() == 20 && fifth.perPlayerCap() == 24,
 				"La población debe pasar de pocas patrullas a una presión alta pero limitada");
-		context.assertTrue(first.intervalSeconds() > second.intervalSeconds()
-				&& second.intervalSeconds() > third.intervalSeconds()
-				&& first.chance() < second.chance() && second.chance() < third.chance(),
-				"Las búsquedas deben aumentar en frecuencia y probabilidad cada noche");
+		context.assertTrue(first.chance() < second.chance() && second.chance() < third.chance()
+				&& third.chance() < fourth.chance() && fourth.chance() < fifth.chance(),
+				"La probabilidad debe aumentar cada noche");
+		context.assertTrue(first.intervalSeconds() == 15 && second.intervalSeconds() == 15
+				&& third.intervalSeconds() == 15 && fourth.intervalSeconds() == 15 && fifth.intervalSeconds() == 15
+				&& first.chance() == 0.40 && second.chance() == 0.50 && third.chance() == 0.60
+				&& fourth.chance() == 0.70 && fifth.chance() == 0.80,
+				"Las búsquedas deben mantenerse cada 15 segundos y progresar del 40 % al 80 % en cinco noches");
 		context.assertTrue(PatrolProgression.forTime(0, config).equals(first)
 				&& PatrolProgression.forTime(36999, config).equals(first)
-				&& PatrolProgression.forTime(60999, config).equals(second),
+				&& PatrolProgression.forTime(60999, config).equals(second)
+				&& PatrolProgression.forTime(84999, config).equals(third)
+				&& PatrolProgression.forTime(108999, config).equals(fourth),
 				"El día inicial debe ser tranquilo y cada etapa debe cambiar al comenzar la noche siguiente");
-		context.assertTrue(PatrolProgression.forTime(24000L * 100 + 13000, config).equals(third),
-				"La dificultad no debe seguir aumentando después de la tercera noche");
+		context.assertTrue(PatrolProgression.forTime(24000L * 100 + 13000, config).equals(fifth),
+				"La dificultad no debe seguir aumentando después de la quinta noche");
+		context.complete();
+	}
+
+	@GameTest(templateName = EMPTY_STRUCTURE)
+	public void explorationRewardsNewChunksWithACooldown(TestContext context) {
+		ExplorationSpawnState state = new ExplorationSpawnState();
+		UUID player = UUID.randomUUID();
+		state.observe(player, 0, 0);
+		context.assertFalse(state.canAttempt(player, 100), "Entrar al mundo sin moverse no debe activar el refuerzo");
+		state.observe(player, 1, 40);
+		context.assertFalse(state.canAttempt(player, 99), "Debe respetar el primer enfriamiento");
+		context.assertTrue(state.canAttempt(player, 100), "Explorar un chunk nuevo debe permitir una búsqueda extra");
+		state.finishAttempt(player, 100, false);
+		state.observe(player, 2, 120);
+		state.observe(player, 3, 140);
+		context.assertFalse(state.canAttempt(player, 199), "Cruzar muchos chunks no debe saltarse el límite de cinco segundos");
+		context.assertTrue(state.canAttempt(player, 200), "Debe permitir reintentar cuando faltó terreno válido");
+		state.finishAttempt(player, 200, true);
+		state.observe(player, 1, 220);
+		context.assertFalse(state.canAttempt(player, 400), "Volver a un chunk visitado no debe generar otro refuerzo");
+		context.complete();
+	}
+
+	@GameTest(templateName = EMPTY_STRUCTURE)
+	public void explorationRemembersVisitedChunksAndExpiresFailedSearches(TestContext context) {
+		UUID player = UUID.randomUUID();
+		ExplorationSpawnState state = new ExplorationSpawnState();
+		state.observe(player, 0, 0);
+		state.observe(player, 1, 40);
+		ExplorationSpawnState restored = ExplorationSpawnState.fromNbt(state.writeNbt(new NbtCompound()));
+		restored.observe(player, 0, 1000);
+		restored.observe(player, 1, 1020);
+		context.assertFalse(restored.canAttempt(player, 1200), "Cargar de nuevo el mundo no debe rearmar chunks visitados");
+		restored.observe(player, 2, 1220);
+		context.assertTrue(restored.canAttempt(player, 1220), "Los chunks nuevos deben seguir dando oportunidades tras recargar");
+		restored.finishAttempt(player, 1220, false);
+		context.assertFalse(restored.canAttempt(player, 1521), "Un intento antiguo debe caducar si ya no se explora");
+		restored.retainPlayers(List.of());
+		restored.observe(player, 3, 1600);
+		context.assertFalse(restored.canAttempt(player, 1800), "Reconectar no debe crear una oportunidad pendiente");
+		context.complete();
+	}
+
+	@GameTest(templateName = EMPTY_STRUCTURE)
+	public void firstEncounterIsRememberedPerPlayerAcrossReloads(TestContext context) {
+		FirstEncounterState state = new FirstEncounterState();
+		UUID first = UUID.randomUUID();
+		UUID second = UUID.randomUUID();
+		context.assertFalse(state.hasEncountered(first), "Un jugador nuevo debe tener su encuentro pendiente");
+		state.markEncountered(first);
+		state.markEncountered(first);
+		FirstEncounterState loaded = FirstEncounterState.fromNbt(state.writeNbt(new NbtCompound()));
+		context.assertTrue(loaded.hasEncountered(first) && !loaded.hasEncountered(second),
+				"Reconectar no debe crear otra patrulla inicial, pero otro jugador conserva su encuentro");
+		context.complete();
+	}
+
+	@GameTest(templateName = EMPTY_STRUCTURE)
+	public void firstEncounterSpawnsACompleteVisibleSquadWithoutARoll(TestContext context) {
+		floor(context);
+		for (int x = 28; x <= 35; x++) {
+			for (int z = 0; z <= 7; z++) context.setBlockState(x, 20, z, Blocks.STONE);
+		}
+		var player = context.createMockSurvivalPlayer();
+		player.setPosition(context.getAbsolute(new Vec3d(2.5, 21, 3.5)));
+		player.setYaw(-90);
+		player.setPitch(0);
+		context.getWorld().getGameRules().get(GameRules.DO_MOB_SPAWNING).set(true, context.getWorld().getServer());
+		try {
+			context.assertTrue(PatrolSpawner.spawnFirstEncounter(context.getWorld(), player) == 3,
+					"En suelo abierto debe crear tres troopers visibles delante del jugador sin sorteo");
+			var origin = context.getAbsolutePos(new BlockPos(30, 21, 3));
+			patrolAt(context, origin).forEach(Entity::discard);
+		} finally {
+			context.getWorld().getGameRules().get(GameRules.DO_MOB_SPAWNING).set(false, context.getWorld().getServer());
+		}
+		context.assertTrue(PatrolSpawner.spawnFirstEncounter(context.getWorld(), player) == 0,
+				"El encuentro inicial debe respetar doMobSpawning=false");
 		context.complete();
 	}
 
@@ -79,7 +168,7 @@ public class StormtrooperGameTests implements FabricGameTest {
 		config.maxTroopersPerWorld = 10;
 		config.patrolsPerCycle = 1;
 		config.spawnChance = 0;
-		for (long time : new long[] {13000, 37000, 61000}) {
+		for (long time : new long[] {13000, 37000, 61000, 85000, 109000}) {
 			var profile = PatrolProgression.forTime(time, config);
 			context.assertTrue(profile.perPlayerCap() == 5 && profile.worldCap() == 10
 					&& profile.patrolsPerCycle() == 1 && profile.chance() == 0,
@@ -102,8 +191,8 @@ public class StormtrooperGameTests implements FabricGameTest {
 		context.assertFalse(StormtrooperEntity.isEnemy(context.createMockCreativePlayer()), "Creativo no debe ser un objetivo");
 		context.assertTrue(StormtrooperEntity.isEnemy(context.createMockSurvivalPlayer()), "Supervivencia sí debe ser un objetivo");
 		var player = context.createMockSurvivalPlayer();
-		player.damage(context.getWorld().getDamageSources().mobProjectile(new LaserBoltEntity(context.getWorld(), trooper), trooper), 3);
-		context.assertTrue(player.getHealth() == 17, "El daño contra un jugador sin armadura debe ser 3 en Normal");
+		player.damage(context.getWorld().getDamageSources().mobProjectile(new LaserBoltEntity(context.getWorld(), trooper), trooper), PatrolConfig.get().laserDamage);
+		context.assertTrue(player.getHealth() == 16.5F, "El daño contra un jugador sin armadura debe ser 3,5 en Normal");
 		context.complete();
 	}
 
@@ -240,7 +329,7 @@ public class StormtrooperGameTests implements FabricGameTest {
 		float initial = target.getHealth();
 		shooter.attack(target, 1);
 		context.waitAndRun(8, () -> {
-			context.assertTrue(target.getHealth() == initial - 3, "El láser debe causar exactamente 3 puntos en Normal");
+			context.assertTrue(target.getHealth() == initial - 3.5F, "El láser debe causar exactamente 3,5 puntos en Normal");
 			context.assertTrue(ally.getHealth() == 20, "El aliado en medio no debe recibir daño");
 			context.complete();
 		});

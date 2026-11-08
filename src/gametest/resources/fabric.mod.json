@@ -1,13 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "tropercraft-gametest",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "TroperCraft integration tests",
   "environment": "server",
   "entrypoints": {
     "fabric-gametest": [
       "com.tunombre.stormcraft.StormtrooperGameTests",
-      "com.tunombre.stormcraft.TrooperHeadGameTests"
+      "com.tunombre.stormcraft.TrooperHeadGameTests",
+      "com.tunombre.stormcraft.StarDestroyerGameTests",
+      "com.tunombre.stormcraft.StarterEquipmentGameTests"
     ]
   },
   "depends": {

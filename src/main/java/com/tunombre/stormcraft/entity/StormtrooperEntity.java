@@ -8,6 +8,8 @@ import com.tunombre.stormcraft.sound.ModSounds;
 import com.tunombre.stormcraft.sound.TrooperSpeech;
 import com.tunombre.stormcraft.sound.TrooperVoices;
 import java.util.Comparator;
+import java.util.EnumSet;
+import net.minecraft.entity.ai.goal.Goal;
 import java.util.UUID;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -41,6 +43,8 @@ public class StormtrooperEntity extends HostileEntity implements RangedAttackMob
 	private UUID patrolId = getUuid();
 	private UUID leaderId = getUuid();
 	private int formationSlot;
+	private UUID alertedPlayerId;
+	private long alertUntil;
 	private StormtrooperEntity cachedLeader;
 	private int nextLeaderLookup;
 	private final TrooperSpeech speech = new TrooperSpeech(random);
@@ -77,8 +81,37 @@ public class StormtrooperEntity extends HostileEntity implements RangedAttackMob
 		goalSelector.add(3, march);
 		goalSelector.add(4, new LookAtEntityGoal(this, PlayerEntity.class, 8.0F));
 		goalSelector.add(5, new LookAroundGoal(this));
+		targetSelector.add(0, new Goal() {
+			{ setControls(EnumSet.of(Control.TARGET)); }
+			@Override public boolean canStart() { return getAlertedPlayer() != null; }
+			@Override public boolean shouldContinue() { return getAlertedPlayer() != null; }
+			@Override public void start() { setTarget(getAlertedPlayer()); }
+			@Override public void tick() { setTarget(getAlertedPlayer()); }
+			@Override public void stop() {
+				if (getTarget() != null && getTarget().getUuid().equals(alertedPlayerId)) {
+					setTarget(null);
+					getNavigation().stop();
+				}
+				alertedPlayerId = null;
+			}
+		});
 		targetSelector.add(1, new ActiveTargetGoal<>(this, LivingEntity.class, 10, true, false,
 				StormtrooperEntity::isEnemy));
+	}
+
+	/** Alarm orders override local mob targets and the normal 32-block acquisition range. */
+	public void alertToPlayer(PlayerEntity player) {
+		if (getWorld().isClient || !isEnemy(player)) return;
+		alertedPlayerId = player.getUuid();
+		alertUntil = getWorld().getTime()+200;
+		setTarget(player);
+	}
+
+	@Nullable
+	private PlayerEntity getAlertedPlayer() {
+		if (alertedPlayerId == null || getWorld().getTime() >= alertUntil) return null;
+		PlayerEntity player = getWorld().getPlayerByUuid(alertedPlayerId);
+		return isEnemy(player) ? player : null;
 	}
 
 	public static boolean isEnemy(@Nullable LivingEntity entity) {
@@ -86,7 +119,7 @@ public class StormtrooperEntity extends HostileEntity implements RangedAttackMob
 		if (entity instanceof PlayerEntity player) {
 			return !player.isCreative() && !player.isSpectator() && !TrooperHeadItem.isDisguised(player);
 		}
-		return entity instanceof MobEntity && entity.isAttackable();
+		return GroundTargetRules.isGroundMob(entity) && entity.isAttackable();
 	}
 
 	@Override
@@ -175,11 +208,15 @@ public class StormtrooperEntity extends HostileEntity implements RangedAttackMob
 		nbt.putUuid("PatrolId", patrolId);
 		nbt.putUuid("PatrolLeader", leaderId);
 		nbt.putInt("FormationSlot", formationSlot);
+		if (alertedPlayerId != null) nbt.putUuid("AlertedPlayer", alertedPlayerId);
+		nbt.putLong("AlertUntil", alertUntil);
 	}
 
 	@Override
 	public void readCustomDataFromNbt(NbtCompound nbt) {
 		super.readCustomDataFromNbt(nbt);
+		alertedPlayerId = nbt.containsUuid("AlertedPlayer") ? nbt.getUuid("AlertedPlayer") : null;
+		alertUntil = nbt.getLong("AlertUntil");
 		setPatrol(nbt.containsUuid("PatrolId") ? nbt.getUuid("PatrolId") : getUuid(),
 				nbt.containsUuid("PatrolLeader") ? nbt.getUuid("PatrolLeader") : getUuid(),
 				nbt.getInt("FormationSlot"));

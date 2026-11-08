@@ -6,6 +6,8 @@ import com.tunombre.stormcraft.entity.ModEntities;
 import com.tunombre.stormcraft.item.ModItems;
 import com.tunombre.stormcraft.sound.ModSounds;
 import com.tunombre.stormcraft.world.PatrolSpawner;
+import com.tunombre.stormcraft.world.StarDestroyerSpawner;
+import com.tunombre.stormcraft.world.StarterEquipment;
 
 import net.minecraft.util.Identifier;
 
@@ -27,6 +29,8 @@ public class TroperCraftMod implements ModInitializer {
 		ModEntities.register();
 		ModItems.register();
 		PatrolSpawner.register();
+		StarDestroyerSpawner.register();
+		StarterEquipment.register();
 		LOGGER.info("TroperCraft: las patrullas imperiales están listas.");
 	}
 

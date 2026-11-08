@@ -19,6 +19,12 @@ public final class ModEntities {
 			FabricEntityTypeBuilder.<LaserBoltEntity>create(SpawnGroup.MISC, LaserBoltEntity::new)
 					.dimensions(EntityDimensions.fixed(0.15F, 0.15F))
 					.trackRangeBlocks(96).trackedUpdateRate(1).forceTrackedVelocityUpdates(true).build());
+	public static final EntityType<StarDestroyerEntity> STAR_DESTROYER = Registry.register(
+			Registries.ENTITY_TYPE, TroperCraftMod.id("star_destroyer"),
+			FabricEntityTypeBuilder.<StarDestroyerEntity>create(SpawnGroup.MISC, StarDestroyerEntity::new)
+					// Physics stays local; StarDestroyerEntity supplies the full rotated hull hitbox.
+					.dimensions(EntityDimensions.fixed(2.0F, 2.0F))
+					.trackRangeBlocks(256).trackedUpdateRate(3).fireImmune().build());
 
 	private ModEntities() { }
 

@@ -23,8 +23,8 @@ public abstract class BlasterArmPoseMixin {
 	@Inject(method = "setAngles(Lnet/minecraft/entity/LivingEntity;FFFFF)V", at = @At("TAIL"))
 	private void tropercraft$aimBlaster(LivingEntity entity, float limbAngle, float limbDistance,
 			float animationProgress, float headYaw, float headPitch, CallbackInfo ci) {
-		boolean mainBlaster = entity.getMainHandStack().isOf(ModItems.BLASTER);
-		boolean offBlaster = entity.getOffHandStack().isOf(ModItems.BLASTER);
+		boolean mainBlaster = (entity.getMainHandStack().isOf(ModItems.BLASTER) || entity.getMainHandStack().isOf(ModItems.DL44));
+		boolean offBlaster = (entity.getOffHandStack().isOf(ModItems.BLASTER) || entity.getOffHandStack().isOf(ModItems.DL44));
 		if (!mainBlaster && !offBlaster) {
 			return;
 		}
@@ -38,9 +38,9 @@ public abstract class BlasterArmPoseMixin {
 		}
 
 		// Support the barrel only with an empty hand; preserve a held shield/tool.
-		if (mainBlaster && entity.getOffHandStack().isEmpty()) {
+		if (entity.getMainHandStack().isOf(ModItems.BLASTER) && entity.getOffHandStack().isEmpty()) {
 			tropercraft$supportBarrel(mainArm.getOpposite());
-		} else if (offBlaster && entity.getMainHandStack().isEmpty()) {
+		} else if (entity.getOffHandStack().isOf(ModItems.BLASTER) && entity.getMainHandStack().isEmpty()) {
 			tropercraft$supportBarrel(mainArm);
 		}
 	}

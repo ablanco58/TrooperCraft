@@ -12,7 +12,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -22,9 +24,11 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.Heightmap;
+import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 
 /** Spawn whole squads rather than letting vanilla truncate a biome spawn group. */
@@ -49,11 +53,40 @@ public final class PatrolSpawner {
 	}
 
 	private static void tick(ServerWorld world) {
+		if (!canSpawnNaturally(world)) return;
 		PatrolProgression.SpawnProfile profile = PatrolProgression.forTime(world.getTimeOfDay(), PatrolConfig.get());
-		if (world.getTime() % (profile.intervalSeconds() * 20L) != 0
-				|| !canSpawnNaturally(world)) return;
+		boolean regularCycle = world.getTime() % (profile.intervalSeconds() * 20L) == 0;
+		boolean introductionCycle = world.getTime() % 40L == 0 && PatrolConfig.get().spawnChance > 0;
+		boolean explorationCycle = world.getTime() % 20L == 0 && PatrolConfig.get().spawnChance > 0;
+		if (!regularCycle && !introductionCycle && !explorationCycle) return;
 		List<ServerPlayerEntity> players = world.getPlayers(player -> player.isAlive() && !player.isSpectator());
-		if (players.isEmpty()) return;
+		if (players.isEmpty()) {
+			if (explorationCycle) ExplorationSpawnState.get(world).retainPlayers(List.of());
+			return;
+		}
+		if (introductionCycle) {
+			FirstEncounterState encounters = FirstEncounterState.get(world);
+			for (ServerPlayerEntity player : players) {
+				if (player.age < 60 || encounters.hasEncountered(player.getUuid())) continue;
+				boolean visibleTrooper = world.getEntitiesByClass(StormtrooperEntity.class,
+						player.getBoundingBox().expand(48), other -> other.isAlive()
+						&& player.squaredDistanceTo(other) <= 48 * 48
+						&& canSeeEncounter(world, player, other.getEyePos())).size() > 0;
+				if (visibleTrooper || spawnFirstEncounter(world, player) > 0) {
+					encounters.markEncountered(player.getUuid());
+				}
+			}
+		}
+		ExplorationSpawnState exploration = explorationCycle ? ExplorationSpawnState.get(world) : null;
+		boolean explorationDue = false;
+		if (exploration != null) {
+			exploration.retainPlayers(players.stream().map(ServerPlayerEntity::getUuid).toList());
+			for (ServerPlayerEntity player : players) {
+				exploration.observe(player.getUuid(), player.getChunkPos().toLong(), world.getTime());
+				explorationDue |= exploration.canAttempt(player.getUuid(), world.getTime());
+			}
+		}
+		if (!regularCycle && !explorationDue) return;
 		int loadedTroopers = 0;
 		for (Entity entity : world.iterateEntities()) {
 			if (entity instanceof StormtrooperEntity && entity.isAlive()) loadedTroopers++;
@@ -66,9 +99,27 @@ public final class PatrolSpawner {
 			ServerPlayerEntity player = players.get((index + offset) % players.size());
 			int nearby = world.getEntitiesByClass(StormtrooperEntity.class, player.getBoundingBox().expand(96),
 					StormtrooperEntity::isAlive).size();
+			if (exploration != null && exploration.canAttempt(player.getUuid(), world.getTime())) {
+				int available = Math.min(populationCap - loadedTroopers, profile.perPlayerCap() - nearby);
+				if (available >= MIN_PATROL_SIZE) {
+					double chance = PatrolConfig.get().spawnChance * 0.95;
+					boolean rolled = world.random.nextDouble() < chance;
+					int size = MIN_PATROL_SIZE + world.random.nextInt(Math.min(MAX_PATROL_SIZE, available) - MIN_PATROL_SIZE + 1);
+					int spawned = rolled ? spawnExplorationPatrol(world, player, size) : 0;
+					exploration.finishAttempt(player.getUuid(), world.getTime(), !rolled || spawned > 0);
+					loadedTroopers += spawned;
+					nearby += spawned;
+				}
+			}
+			if (!regularCycle) continue;
+			List<MobEntity> landMobs = world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(64),
+					mob -> !(mob instanceof StormtrooperEntity) && mob.isAlive() && mob.isOnGround()
+					&& !mob.isTouchingWater() && mob.squaredDistanceTo(player) >= 28 * 28
+					&& mob.squaredDistanceTo(player) <= 64 * 64);
 			for (int wave = 0; wave < profile.patrolsPerCycle(); wave++) {
-				int size = MIN_PATROL_SIZE + world.random.nextInt(MAX_PATROL_SIZE - MIN_PATROL_SIZE + 1);
-				if (loadedTroopers + size > populationCap || nearby + size > profile.perPlayerCap()) continue;
+				int available = Math.min(populationCap - loadedTroopers, profile.perPlayerCap() - nearby);
+				if (available < MIN_PATROL_SIZE) break;
+				int size = MIN_PATROL_SIZE + world.random.nextInt(Math.min(MAX_PATROL_SIZE, available) - MIN_PATROL_SIZE + 1);
 				if (world.random.nextDouble() >= profile.chance()) continue;
 				// Give both surface and underground a dedicated search; neither requires darkness.
 				// With just one search, alternate the preferred environment each cycle.
@@ -79,7 +130,16 @@ public final class PatrolSpawner {
 					int x = MathHelper.floor(player.getX() + Math.cos(angle) * radius);
 					int z = MathHelper.floor(player.getZ() + Math.sin(angle) * radius);
 					boolean cave = attempt < SEARCH_ATTEMPTS / 2 ? preferCave : !preferCave;
-					BlockPos candidate = findCandidate(world, player.getBlockPos(), x, z, cave);
+					BlockPos candidate;
+					if (!landMobs.isEmpty() && attempt < SEARCH_ATTEMPTS * 3 / 4) {
+						// Spend 75% of searches near other land mobs, then fall back to the normal ring.
+						MobEntity anchor = landMobs.get(world.random.nextInt(landMobs.size()));
+						x = anchor.getBlockX() + world.random.nextInt(17) - 8;
+						z = anchor.getBlockZ() + world.random.nextInt(17) - 8;
+						candidate = findLocalFloor(world, anchor.getBlockPos(), x, z, 4);
+					} else {
+						candidate = findCandidate(world, player.getBlockPos(), x, z, cave);
+					}
 					if (candidate == null) continue;
 					int spawned = spawnPatrol(world, candidate, size, true);
 					if (spawned > 0) {
@@ -90,6 +150,64 @@ public final class PatrolSpawner {
 				}
 			}
 		}
+	}
+
+	private static int spawnExplorationPatrol(ServerWorld world, LivingEntity player, int size) {
+		boolean underground = !world.isSkyVisible(player.getBlockPos());
+		for (int attempt = 0; attempt < SEARCH_ATTEMPTS * 2; attempt++) {
+			// Favor the direction of travel/view before trying the full surrounding ring.
+			float yaw = player.getYaw() + (attempt < SEARCH_ATTEMPTS
+					? world.random.nextFloat() * 120 - 60 : world.random.nextFloat() * 360);
+			Vec3d forward = Vec3d.fromPolar(0, yaw).multiply(28 + world.random.nextInt(25));
+			int x = MathHelper.floor(player.getX() + forward.x);
+			int z = MathHelper.floor(player.getZ() + forward.z);
+			BlockPos candidate = findLocalFloor(world, player.getBlockPos(), x, z, 8);
+			if (candidate == null) candidate = findCandidate(world, player.getBlockPos(), x, z, underground);
+			if (candidate == null) continue;
+			int count = spawnPatrol(world, candidate, size, true);
+			if (count > 0) return count;
+		}
+		return 0;
+	}
+
+	/** No probability roll: keep retrying a visible, safe first squad until it fits. */
+	public static int spawnFirstEncounter(ServerWorld world, LivingEntity player) {
+		if (!canSpawnNaturally(world)) return 0;
+		for (int radius : new int[] {28, 32, 36, 40}) {
+			for (int offset : new int[] {0, -10, 10, -20, 20, -30, 30}) {
+				Vec3d forward = Vec3d.fromPolar(0, player.getYaw() + offset).multiply(radius);
+				int x = MathHelper.floor(player.getX() + forward.x);
+				int z = MathHelper.floor(player.getZ() + forward.z);
+				BlockPos candidate = findLocalFloor(world, player.getBlockPos(), x, z, 8);
+				if (candidate == null) candidate = findCandidate(world, player.getBlockPos(), x, z, false);
+				if (candidate == null || isNearPlayer(world, candidate)
+						|| !canSeeEncounter(world, player, Vec3d.ofBottomCenter(candidate).add(0, 1, 0))) continue;
+				int count = spawnPatrol(world, candidate, MIN_PATROL_SIZE, true);
+				if (count > 0) return count;
+			}
+		}
+		return 0;
+	}
+
+	private static boolean canSeeEncounter(ServerWorld world, LivingEntity player, Vec3d target) {
+		Vec3d direction = target.subtract(player.getEyePos());
+		if (direction.lengthSquared() < 1.0E-6
+				|| Vec3d.fromPolar(player.getPitch(), player.getYaw()).dotProduct(direction.normalize()) < 0.85) return false;
+		return world.raycast(new RaycastContext(player.getEyePos(), target, RaycastContext.ShapeType.COLLIDER,
+				RaycastContext.FluidHandling.NONE, player)).getType() == HitResult.Type.MISS;
+	}
+
+	private static BlockPos findLocalFloor(ServerWorld world, BlockPos focus, int x, int z, int verticalRange) {
+		if (!world.isChunkLoaded(new BlockPos(x, focus.getY(), z))) return null;
+		for (int distance = 0; distance <= verticalRange; distance++) {
+			BlockPos above = new BlockPos(x, focus.getY() + distance, z);
+			if (isSafePosition(world, above)) return above;
+			if (distance > 0) {
+				BlockPos below = new BlockPos(x, focus.getY() - distance, z);
+				if (isSafePosition(world, below)) return below;
+			}
+		}
+		return null;
 	}
 
 	public static boolean canSpawnNaturally(ServerWorld world) {

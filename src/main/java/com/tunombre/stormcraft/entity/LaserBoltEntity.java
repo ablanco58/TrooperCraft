@@ -24,6 +24,10 @@ public final class LaserBoltEntity extends ProjectileEntity {
 	public static final int MAX_AGE = 40;
 	private int flightTicks;
 	private boolean playerShot;
+	private boolean shipShot;
+	private boolean trooperShot;
+	private boolean maskedPlayerShot;
+	private float damageOverride;
 
 	public LaserBoltEntity(EntityType<? extends LaserBoltEntity> type, World world) {
 		super(type, world);
@@ -40,7 +44,20 @@ public final class LaserBoltEntity extends ProjectileEntity {
 	public void setOwner(Entity owner) {
 		super.setOwner(owner);
 		playerShot = owner instanceof PlayerEntity;
+		shipShot = owner instanceof StarDestroyerEntity;
+		trooperShot = owner instanceof StormtrooperEntity;
+		maskedPlayerShot = owner instanceof PlayerEntity player && TrooperHeadItem.isWearingTrooperHead(player);
 	}
+
+	public void setDamageOverride(float damage) {
+		if (!Float.isFinite(damage) || damage <= 0 || damage > 100) throw new IllegalArgumentException("Invalid laser damage");
+		damageOverride = damage;
+	}
+
+	public float getDamageOverride() { return damageOverride; }
+
+	public boolean isShipShot() { return shipShot; }
+	public boolean wasFiredWithTrooperHead() { return maskedPlayerShot; }
 
 	@Override
 	protected void initDataTracker() { }
@@ -48,7 +65,7 @@ public final class LaserBoltEntity extends ProjectileEntity {
 	@Override
 	public void tick() {
 		super.tick();
-		if (++flightTicks > MAX_AGE) {
+		if (++flightTicks > (shipShot ? 320 : MAX_AGE)) {
 			discard();
 			return;
 		}
@@ -60,6 +77,11 @@ public final class LaserBoltEntity extends ProjectileEntity {
 			}
 			HitResult hit = ProjectileUtil.getCollision(this, this::canHit);
 			if (hit.getType() != HitResult.Type.MISS) {
+				if (hit instanceof EntityHitResult entityHit) {
+					Vec3d impact = entityHit.getEntity().getBoundingBox().expand(0.3)
+							.raycast(getPos(), getPos().add(velocity)).orElse(hit.getPos());
+					hit = new EntityHitResult(entityHit.getEntity(), impact);
+				}
 				setPosition(hit.getPos());
 				onCollision(hit);
 				return;
@@ -75,15 +97,18 @@ public final class LaserBoltEntity extends ProjectileEntity {
 
 	@Override
 	protected boolean canHit(Entity entity) {
-		return !isProtectedTarget(entity) && super.canHit(entity);
+		return entity != getOwner() && !isProtectedTarget(entity) && super.canHit(entity);
 	}
 
 	private boolean isProtectedTarget(Entity entity) {
+		if ((shipShot || trooperShot) && entity instanceof LivingEntity living && !(entity instanceof PlayerEntity)
+				&& !GroundTargetRules.isGroundMob(living)) return true;
+		if (entity instanceof StarDestroyerEntity && (shipShot || getOwner() instanceof StarDestroyerEntity)) return true;
 		if (entity instanceof StormtrooperEntity) {
 			// Preserve the shot's origin even if its owner unloads before impact.
 			return !playerShot && !(getOwner() instanceof PlayerEntity);
 		}
-		return getOwner() instanceof StormtrooperEntity && entity instanceof PlayerEntity player
+		return (getOwner() instanceof StormtrooperEntity || trooperShot || shipShot) && entity instanceof PlayerEntity player
 				&& TrooperHeadItem.isDisguised(player);
 	}
 
@@ -92,8 +117,8 @@ public final class LaserBoltEntity extends ProjectileEntity {
 		if (getWorld().isClient || isProtectedTarget(hit.getEntity())) return;
 		Entity owner = getOwner();
 		// Retain player damage even when a saved shot's owner is no longer loaded.
-		float damage = playerShot || owner instanceof PlayerEntity
-				? PatrolConfig.get().playerLaserDamage : PatrolConfig.get().laserDamage;
+		float damage = damageOverride > 0 ? damageOverride : playerShot || owner instanceof PlayerEntity
+				? PatrolConfig.get().playerLaserDamage : shipShot ? 12.0F : PatrolConfig.get().laserDamage;
 		hit.getEntity().damage(owner instanceof LivingEntity living
 				? getDamageSources().mobProjectile(this, living) : getDamageSources().thrown(this, owner),
 				damage);
@@ -103,6 +128,9 @@ public final class LaserBoltEntity extends ProjectileEntity {
 	protected void onCollision(HitResult hit) {
 		super.onCollision(hit);
 		if (getWorld() instanceof ServerWorld world) {
+			if (shipShot && hit.getType() == HitResult.Type.BLOCK) {
+				world.createExplosion(this, getX(), getY(), getZ(), 1.5F, false, World.ExplosionSourceType.MOB);
+			}
 			world.playSound(null, getX(), getY(), getZ(), ModSounds.LASER_IMPACT, SoundCategory.HOSTILE, 0.45F, 1.0F);
 			world.spawnParticles(ParticleTypes.ELECTRIC_SPARK, getX(), getY(), getZ(), 5, 0.08, 0.08, 0.08, 0.02);
 			discard();
@@ -114,6 +142,10 @@ public final class LaserBoltEntity extends ProjectileEntity {
 		super.writeCustomDataToNbt(nbt);
 		nbt.putInt("FlightTicks", flightTicks);
 		nbt.putBoolean("PlayerShot", playerShot);
+		nbt.putBoolean("ShipShot", shipShot);
+		nbt.putBoolean("TrooperShot", trooperShot);
+		nbt.putBoolean("MaskedPlayerShot", maskedPlayerShot);
+		nbt.putFloat("DamageOverride", damageOverride);
 	}
 
 	@Override
@@ -121,5 +153,10 @@ public final class LaserBoltEntity extends ProjectileEntity {
 		super.readCustomDataFromNbt(nbt);
 		flightTicks = Math.max(0, nbt.getInt("FlightTicks"));
 		playerShot = nbt.getBoolean("PlayerShot");
+		shipShot = nbt.getBoolean("ShipShot");
+		trooperShot = nbt.getBoolean("TrooperShot");
+		maskedPlayerShot = nbt.getBoolean("MaskedPlayerShot");
+		float savedDamage = nbt.getFloat("DamageOverride");
+		damageOverride = Float.isFinite(savedDamage) && savedDamage > 0 && savedDamage <= 100 ? savedDamage : 0;
 	}
 }

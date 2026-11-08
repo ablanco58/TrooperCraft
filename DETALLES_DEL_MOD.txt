@@ -41,24 +41,23 @@ No se añade una meta de ataque cuerpo a cuerpo: su combate usa el bláster.
 
 Valores iniciales:
   Vida: 20 puntos = 10 corazones.
-  Daño por impacto: 3 puntos base = 1,5 corazones.
+  Daño por impacto de trooper: 3,5 puntos base = 1,75 corazones.
   Intervalo entre disparos: 30 ticks = 1,5 segundos a 20 TPS.
   Velocidad inicial del láser: aproximadamente 2,4 bloques por tick.
   Duración máxima del proyectil: 40 ticks, aproximadamente 2 segundos a 20 TPS.
 
-Los 3 puntos equivalen al golpe base de un zombi sin arma en dificultad Normal
-contra un jugador sin protección. Una patrulla entera sigue siendo más peligrosa
-que un zombi: varios miembros pueden disparar al mismo objetivo.
+El daño base de los troopers sube de 3 a 3,5 puntos. Una patrulla entera sigue
+siendo peligrosa: varios miembros pueden disparar al mismo objetivo.
 
 Se utiliza la fuente de daño estándar mobProjectile. El daño contra un jugador
-causado por un mob se ajusta a la dificultad: con base 3 es 2,5 en Fácil, 3 en
-Normal y 4,5 en Difícil, antes de defensas. Armadura, escudos, encantamientos,
+causado por un mob se ajusta a la dificultad: con base 3,5 es 2,75 en Fácil, 3,5 en
+Normal y 5,25 en Difícil, antes de defensas. Armadura, escudos, encantamientos,
 resistencia y los periodos de invulnerabilidad tras golpes pueden modificarlo.
 Contra otros mobs se aplica el daño base y sus defensas particulares.
 El bláster disparado por un jugador no recibe el escalado de atacante mob y usa
-playerLaserDamage, inicialmente 10 puntos (5 corazones). Un creeper normal con
-20 puntos de vida muere con dos impactos, sin defensas ni efectos adicionales.
-El daño de las patrullas sigue controlado por laserDamage, inicialmente 3.
+playerLaserDamage, inicialmente 8 puntos (4 corazones). Un creeper normal con
+20 puntos de vida muere con tres impactos, sin defensas ni efectos adicionales.
+El daño de las patrullas sigue controlado por laserDamage, inicialmente 3,5.
 
 El láser es una entidad propia que viaja en línea recta y no tiene gravedad.
 El servidor calcula colisiones a lo largo del recorrido de cada tick, para
@@ -129,18 +128,19 @@ dejar grupos incompletos cuando fallan posiciones. Este generador busca primero
 sitio para todos y no deja una patrulla parcial si no encuentra espacio.
 
 Con los valores iniciales funciona así:
-  1) Consulta la etapa del calendario del Overworld: inicio/primera noche,
-     segunda noche o tercera y siguientes. Revisa las reglas cada 60, 30 o
-     20 segundos a 20 TPS, respectivamente, con la configuración inicial.
+  1) Consulta la etapa del calendario del Overworld, de la primera a la quinta
+     noche. Revisa las reglas cada 15 segundos a 20 TPS en todas las etapas,
+     con la configuración inicial.
   2) Solo trabaja en minecraft:overworld, fuera de Pacífico, con aparición de
      monstruos habilitada y doMobSpawning=true.
   3) Considera jugadores vivos que no estén en Espectador. Creativo también
      puede provocar aparición cercana, aunque no sea un objetivo de ataque.
   4) Cuenta troopers vivos cargados y comprueba límites globales y locales.
      El primer jugador evaluado rota para no favorecer siempre al mismo.
-  5) Por jugador realiza 1 búsqueda al 45 % en la primera etapa, 1 al 75 %
-     en la segunda y 2 al 100 % en la tercera. En cada búsqueda elige al azar
-     3, 4 o 5 integrantes. Desde la tercera noche ya no aumenta la presión.
+  5) Por jugador realiza 1 búsqueda al 40 % la primera noche, 1 al 50 % la
+     segunda, 2 al 60 % la tercera, 2 al 70 % la cuarta y 2 al 80 % desde la
+     quinta. Elige 3, 4 o 5 integrantes según el espacio disponible en el cupo;
+     nunca divide un grupo. Desde la quinta noche ya no aumenta la presión.
   6) Prueba hasta 24 centros por búsqueda, a 28–64 bloques en horizontal.
      Alterna la preferencia entre superficie y cuevas por ciclo y búsqueda:
      hace 12 intentos en el entorno preferido y 12 en el otro si no aparece.
@@ -165,6 +165,39 @@ montañas, aldeas, islas de hongos y cuevas si el terreno es válido. Las antorc
 no impiden su aparición. Un túnel demasiado estrecho puede no admitir al grupo.
 No se colocan flotando, dentro de bloques ni bajo el agua.
 
+Si hay otros mobs vivos sobre suelo firme a 28–64 bloques del jugador, el 75 %
+de los intentos se centra en posiciones próximas a esos mobs. Se excluyen otros
+troopers y mobs en agua. El resto usa el anillo de búsqueda habitual.
+
+PRIMER ENCUENTRO
+Tras unos 3–5 segundos de la primera entrada en el Overworld se intenta crear
+una patrulla de tres miembros a 28–40 bloques delante del jugador, en suelo
+seguro y con visión directa. No hay sorteo. Si no hay sitio, chunks cargados o
+visibilidad, reintenta cada dos segundos. Un trooper ya visible delante también
+cumple el encuentro. FirstEncounterState guarda los UUID en los datos del mundo,
+por lo que no se repite al reconectar. El encuentro tiene prioridad sobre los
+cupos normales, pero respeta las reglas de aparición y spawnChance=0.
+
+REFUERZO AL EXPLORAR
+ExplorationSpawnState registra los chunks pisados por los jugadores y guarda
+esa lista en los datos del Overworld. Al entrar en uno aún no registrado se
+habilita una búsqueda adicional con probabilidad spawnChance * 0,95. Se revisa
+el movimiento cada segundo y se permite como máximo un intento adicional cada
+100 ticks (5 segundos). Las oportunidades se agrupan al viajar rápido.
+
+La búsqueda adicional prueba hasta 48 centros a 28–52 bloques, primero delante
+del jugador y luego en el anillo completo. Prioriza suelo cercano a la altura
+del jugador y usa superficie o cuevas según dónde esté. Mantiene grupos de 3–5,
+distancia mínima de 24 bloques, chunks ya cargados, reglas y cupos normales.
+No genera ni carga chunks para colocar patrullas.
+
+Si falla el terreno, se puede reintentar durante 300 ticks (15 segundos). Un
+sorteo fallido o una patrulla creada consume la oportunidad. La carga inicial,
+reconexiones y chunks ya registrados no dan nuevas oportunidades. El registro
+es compartido por los jugadores del mundo y empieza con esta actualización;
+también cuenta terreno antiguo que todavía no se haya recorrido desde entonces.
+El ciclo normal de 15 segundos y la progresión de cinco noches se conservan.
+
 Las búsquedas de cada etapa no garantizan patrullas: dependen de la
 población, terreno, chunks y reglas. No se exige un nivel de luz ni una hora:
 se crean grupos tanto a pleno día como de noche, incluso con antorchas cerca.
@@ -174,8 +207,8 @@ vertical para no crear grupos tan lejos que desaparezcan inmediatamente.
 
 7. POBLACIÓN Y RENDIMIENTO
 
-Cada etapa tiene un límite local de 6, 12 o 24 troopers por jugador y un techo
-de 24, 48 o 96 en el mundo. Cada límite es, además, el menor entre ese valor
+Las cinco etapas tienen límites locales de 6, 10, 14, 20 y 24 troopers por jugador
+y techos de 24, 40, 56, 80 y 96 en el mundo. Cada límite es el menor entre ese valor
 y maxTroopersPerPlayer o maxTroopersPerWorld, respectivamente.
 El límite global efectivo es el menor entre el techo del mundo de la etapa
 y el límite local multiplicado por los jugadores elegibles. Se cuentan los
@@ -183,11 +216,12 @@ troopers cargados, incluidos los manuales. La caja local amplía 96 bloques en
 todos los ejes la caja del jugador.
 
 La segunda noche comienza en el tick 37000 del calendario, la tercera en el
-61000. El inicio, la primera noche y el día siguiente usan la primera etapa.
-La segunda se mantiene durante el tercer día y cambia al empezar esa noche.
+61000, la cuarta en el 85000 y la quinta en el 109000. El inicio, la primera
+noche y el día siguiente usan la primera etapa. Cada etapa se mantiene durante
+el día siguiente y cambia al empezar la próxima noche.
 Dormir adelanta el calendario y cuenta para la progresión. Los mundos existentes
 usan su calendario actual, no una cuenta desde que se instaló el mod. /time set
-puede cambiar de etapa. La tercera se mantiene indefinidamente sin seguir subiendo.
+puede cambiar de etapa. La quinta se mantiene indefinidamente sin seguir subiendo.
 
 Son límites para autorizar grupos nuevos. No se borran automáticamente troopers
 si baja el número de jugadores o varias patrullas se acercan a una misma persona.
@@ -214,8 +248,9 @@ Contenido inicial:
   "patrolsPerCycle": 2,
   "maxTroopersPerPlayer": 40,
   "maxTroopersPerWorld": 160,
-  "laserDamage": 3.0,
-  "playerLaserDamage": 10.0,
+  "balanceVersion": 1,
+  "laserDamage": 3.5,
+  "playerLaserDamage": 8.0,
   "shotIntervalTicks": 30,
   "enableVoices": true,
   "voiceVolume": 0.85,
@@ -227,16 +262,19 @@ Contenido inicial:
 
 Rangos admitidos:
   spawnIntervalSeconds: entero de 5 a 3600, intervalo base en segundos.
-    Se multiplica por 6, 3 o 2 según la etapa.
+    Se multiplica siempre por 1,5 (entero, mínimo 5 segundos), sin cambiar por noche.
   spawnChance: número de 0 a 1, probabilidad base por jugador y oportunidad.
-    Se multiplica por 0,45, 0,75 o 1 según la etapa.
+    Se multiplica por 0,40, 0,50, 0,60, 0,70 o 0,80 según la etapa.
   patrolsPerCycle: entero de 1 a 4, techo de búsquedas por jugador y ciclo.
-    Las etapas realizan como máximo 1, 1 o 2 búsquedas, respectivamente.
+    Las cinco etapas realizan como máximo 1, 1, 2, 2 o 2 búsquedas, respectivamente.
   maxTroopersPerPlayer: entero de 5 a 200, límite por jugador.
   maxTroopersPerWorld: entero de 5 a 1000, techo global cargado.
   laserDamage: número mayor que 0 y menor o igual que 100, daño base de troopers.
   playerLaserDamage: número mayor que 0 y menor o igual que 100, daño del jugador.
-    Las configuraciones anteriores que no lo incluyan usan 10 por defecto.
+    Las configuraciones anteriores que no lo incluyan usan 8 por defecto.
+  balanceVersion: marca de migración. Al faltar en configuraciones antiguas,
+    actualiza solo los daños predeterminados 3/10 a 3,5/8 y guarda la marca 1.
+    Los valores personalizados se conservan.
   shotIntervalTicks: entero de 10 a 1200, ticks entre disparos.
   enableVoices: true o false para permitir o detener nuevas frases.
   voiceVolume: número de 0 a 1, volumen de las voces (inicial 0,85).
@@ -423,17 +461,18 @@ vanilla pueden invocarse también en otras dimensiones; eso no activa allí
 la aparición automática del mod.
 
 El bláster se usa con clic derecho y el intervalo configurado. No consume
-munición, pero tiene 131 puntos de durabilidad, los de una espada de piedra.
+munición, pero tiene 32 puntos de durabilidad, los de una espada de oro.
 Cada disparo creado y cada golpe cuerpo a cuerpo consume un punto; el último
 disparo todavía sale y después rompe el arma. Funciona en ambas manos; Creativo
 no consume durabilidad. No tiene receta de fabricación en esta versión.
 Está en Combate junto con la cabeza de trooper; el huevo, en Huevos generadores.
-Los troopers pueden soltar un bláster con un 40 % de probabilidad por muerte,
-independientemente del atacante. Se entrega uno nuevo con sus 131 usos; no
+Los troopers pueden soltar un bláster con un 15 % de probabilidad por muerte,
+independientemente del atacante. Se entrega uno nuevo con sus 32 usos; no
 se duplica con la entrega del arma equipada, cuya probabilidad sigue siendo cero.
-También pueden soltar una cabeza con un 30 % de probabilidad cuando la baja se
-atribuye a un jugador. Son sorteos independientes, sin bonificación de Saqueo,
-y respetan doMobLoot. Mantienen 5 puntos base de experiencia
+También pueden soltar una cabeza con un 15 % de probabilidad cuando la baja se
+atribuye a un jugador. Se entrega como máximo uno de estos objetos por trooper:
+15 % casco, 15 % bláster y 70 % ninguno en bajas del jugador. No aumenta con
+Saqueo y respeta doMobLoot. Mantienen 5 puntos base de experiencia
 cuando se cumplen las condiciones normales de Minecraft para soltar experiencia.
 
 11. ORGANIZACIÓN DEL CÓDIGO
@@ -475,7 +514,7 @@ Desde la raíz:
 En Windows usa gradlew.bat. La primera vez se descargan dependencias; después
 puede usarse --offline si ya están almacenadas.
 
-Instala build/libs/tropercraft-mod-1.0.0.jar en mods/ junto con Fabric API para
+Instala build/libs/tropercraft-mod-1.0.4.jar en mods/ junto con Fabric API para
 Minecraft 1.20.1. No se instala el archivo terminado en -sources.jar.
 Se probó con Fabric Loader 0.20.1 y Fabric API 0.92.12+1.20.1.
 En multijugador, servidor y clientes necesitan el mod y Fabric API.
@@ -514,7 +553,8 @@ Las pruebas verifican:
   - Equipado con clic derecho y estadísticas equivalentes al casco de hierro.
   - Cancelación de persecución y ataques al equiparse el disfraz durante un combate.
   - Receta real de 5 lingotes de hierro y 1 carbón mineral.
-  - Muestreo del botín cerca del 30 % y ausencia de cabezas sin baja de jugador.
+  - Muestreo del botín cerca del 15 % por objeto, máximo un objeto por baja
+    y ausencia de cabezas sin baja de jugador.
   - Daño real del bláster del jugador contra troopers con y sin disfraz.
   - Persistencia del origen del proyectil del jugador al guardar y cargar.
 
@@ -580,11 +620,12 @@ ingrediente. La receta del casco de hierro normal sigue funcionando. El libro
 desbloquea la receta del disfraz al tener hierro y carbón en el inventario.
 
 BOTÍN
-La tabla de botín del stormtrooper tiene un sorteo de probabilidad 0,3 (30 %),
-condicionado a una baja atribuida a un jugador. Si sale favorable entrega una
-sola cabeza nueva. No se añade como equipo del mob, evitando duplicar el botín
-por dos mecanismos distintos. Cada baja se sortea independientemente: diez
-bajas no garantizan tres cabezas. Saqueo no modifica la probabilidad.
+En bajas del jugador, la tabla hace un solo sorteo al 30 % y, si tiene éxito,
+elige a partes iguales entre casco y bláster: 15 % de probabilidad por objeto
+y 70 % de ninguno. Al elegir un único objeto nunca entrega los dos a la vez.
+Sin crédito de jugador, otro pool mutuamente excluyente permite solo el bláster
+al 15 %. La cabeza no se añade como equipo del mob y la entrega del arma equipada
+está desactivada, evitando duplicar el botín. Saqueo no modifica la probabilidad.
 
 Se utiliza la condición vanilla killed_by_player: cuenta la atribución de baja
 que hace Minecraft, incluido su margen de crédito tras un golpe del jugador.
@@ -613,8 +654,8 @@ objetivo válido. Eso no fuerza un disparo instantáneo: la IA necesita detectar
 y cumplir sus condiciones normales de alcance y visión. El disfraz no cambia
 la agresividad de zombis, esqueletos u otros enemigos.
 
-El bláster no tiene receta y ahora cae como botín con un 40 % de probabilidad,
-en un sorteo independiente del de la cabeza.
+El bláster no tiene receta y cae como botín con un 15 % de probabilidad,
+sin poder caer junto al casco del mismo trooper.
 
 ARCHIVOS RELEVANTES
   item/TrooperHeadItem.java: estadísticas y detección del objeto equipado.
@@ -622,7 +663,8 @@ ARCHIVOS RELEVANTES
   assets/tropercraft-mod/models/item/trooper_head.json: objeto 3D del inventario.
   data/tropercraft-mod/recipes/trooper_head.json: receta con hierro y carbón.
   data/tropercraft-mod/advancements/recipes/combat/trooper_head.json: libro.
-  data/tropercraft-mod/loot_tables/entities/stormtrooper.json: probabilidad 30 %.
+  data/tropercraft-mod/loot_tables/entities/stormtrooper.json: 15 % por objeto,
+    con entrega excluyente de casco o bláster.
   src/gametest/.../TrooperHeadGameTests.java: pruebas de uso, receta, IA y botín.
 
 PARA PROBAR

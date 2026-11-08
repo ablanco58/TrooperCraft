@@ -2,6 +2,8 @@ package com.tunombre.stormcraft.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.tunombre.stormcraft.TroperCraftMod;
 import java.io.IOException;
 import java.io.Reader;
@@ -19,8 +21,9 @@ public final class PatrolConfig {
 	public int patrolsPerCycle = 2;
 	public int maxTroopersPerPlayer = 40;
 	public int maxTroopersPerWorld = 160;
-	public float laserDamage = 3.0F;
-	public float playerLaserDamage = 10.0F;
+	public int balanceVersion = 1;
+	public float laserDamage = 3.5F;
+	public float playerLaserDamage = 8.0F;
 	public int shotIntervalTicks = 30;
 	public boolean enableVoices = true;
 	public float voiceVolume = 0.85F;
@@ -37,12 +40,21 @@ public final class PatrolConfig {
 		Path path = FabricLoader.getInstance().getConfigDir().resolve("tropercraft.json");
 		try {
 			if (Files.exists(path)) {
+				boolean migrated;
 				try (Reader reader = Files.newBufferedReader(path)) {
-					PatrolConfig loaded = GSON.fromJson(reader, PatrolConfig.class);
-					if (loaded == null) throw new IllegalArgumentException("Configuración vacía");
+					JsonObject saved = JsonParser.parseReader(reader).getAsJsonObject();
+					PatrolConfig loaded = GSON.fromJson(saved, PatrolConfig.class);
+					migrated = !saved.has("balanceVersion") || saved.get("balanceVersion").getAsInt() < 1;
+					if (migrated) {
+						// Upgrade old defaults while retaining customized damage values.
+						if (loaded.laserDamage == 3.0F) loaded.laserDamage = 3.5F;
+						if (loaded.playerLaserDamage == 10.0F) loaded.playerLaserDamage = 8.0F;
+						loaded.balanceVersion = 1;
+					}
 					loaded.validate();
 					instance = loaded;
 				}
+				if (migrated) Files.writeString(path, GSON.toJson(instance) + System.lineSeparator());
 			} else {
 				Files.createDirectories(path.getParent());
 				Files.writeString(path, GSON.toJson(instance) + System.lineSeparator());

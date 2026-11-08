@@ -134,7 +134,7 @@ public class TrooperHeadGameTests implements FabricGameTest {
 	}
 
 	@GameTest(templateName = EMPTY_STRUCTURE)
-	public void independentHeadAndBlasterLootProbabilities(TestContext context) {
+	public void exclusiveHeadAndBlasterLootProbabilities(TestContext context) {
 		StormtrooperEntity trooper = ModEntities.STORMTROOPER.create(context.getWorld());
 		PlayerEntity player = context.createMockSurvivalPlayer();
 		LootTable table = context.getWorld().getServer().getLootManager()
@@ -149,54 +149,54 @@ public class TrooperHeadGameTests implements FabricGameTest {
 				.build(LootContextTypes.ENTITY);
 		int droppedHeads = 0;
 		int droppedBlasters = 0;
-		int droppedBoth = 0;
 		// Adjacent small LCG seeds have correlated first draws; use well-separated deterministic seeds.
 		Random seeds = Random.create(20261106);
 		for (int sample = 0; sample < 2000; sample++) {
 			List<ItemStack> loot = table.generateLoot(playerKill, seeds.nextLong());
-			context.assertTrue(loot.size() <= 2 && loot.stream().allMatch(stack ->
+			context.assertTrue(loot.size() <= 1 && loot.stream().allMatch(stack ->
 					(stack.isOf(ModItems.TROOPER_HEAD) || stack.isOf(ModItems.BLASTER)) && stack.getCount() == 1),
-					"Solo debe poder soltar una cabeza y un bláster por baja");
+					"Debe soltar como máximo un objeto: casco o bláster, nunca ambos");
 			int heads = (int) loot.stream().filter(stack -> stack.isOf(ModItems.TROOPER_HEAD)).count();
 			int blasters = (int) loot.stream().filter(stack -> stack.isOf(ModItems.BLASTER)).count();
 			context.assertTrue(heads <= 1 && blasters <= 1, "Ninguno de los objetos debe duplicarse");
 			context.assertTrue(loot.stream().filter(stack -> stack.isOf(ModItems.BLASTER))
-					.allMatch(stack -> stack.getDamage() == 0 && stack.getMaxDamage() == 131),
+					.allMatch(stack -> stack.getDamage() == 0 && stack.getMaxDamage() == 32),
 					"El bláster de botín debe tener su durabilidad completa");
 			droppedHeads += heads;
 			droppedBlasters += blasters;
-			if (heads == 1 && blasters == 1) droppedBoth++;
 		}
-		context.assertTrue(droppedHeads > 500 && droppedHeads < 700,
-				"Las cabezas deben aproximarse al 30 %: " + droppedHeads + "/2000");
-		context.assertTrue(droppedBlasters > 700 && droppedBlasters < 900,
-				"Los blásteres deben aproximarse al 40 %: " + droppedBlasters + "/2000");
-		context.assertTrue(droppedBoth > 150 && droppedBoth < 330,
-				"Ambos sorteos deben ser independientes y poder entregar los dos objetos");
+		context.assertTrue(droppedHeads > 200 && droppedHeads < 400,
+				"Las cabezas deben aproximarse al 15 %: " + droppedHeads + "/2000");
+		context.assertTrue(droppedBlasters > 200 && droppedBlasters < 400,
+				"Los blásteres deben aproximarse al 15 %: " + droppedBlasters + "/2000");
 		LootContextParameterSet environmentalDeath = new LootContextParameterSet.Builder(context.getWorld())
 				.add(LootContextParameters.THIS_ENTITY, trooper)
 				.add(LootContextParameters.ORIGIN, trooper.getPos())
 				.add(LootContextParameters.DAMAGE_SOURCE, context.getWorld().getDamageSources().generic())
 				.build(LootContextTypes.ENTITY);
-		for (int sample = 0; sample < 100; sample++) {
+		int environmentalBlasters = 0;
+		for (int sample = 0; sample < 2000; sample++) {
 			List<ItemStack> loot = table.generateLoot(environmentalDeath, seeds.nextLong());
 			context.assertTrue(loot.size() <= 1 && loot.stream().allMatch(stack -> stack.isOf(ModItems.BLASTER)),
 					"Las muertes sin jugador pueden soltar el bláster, pero no la cabeza");
+			environmentalBlasters += loot.size();
 		}
+		context.assertTrue(environmentalBlasters > 200 && environmentalBlasters < 400,
+				"Sin jugador, el bláster también debe mantener su probabilidad del 15 %");
 		context.complete();
 	}
 
 	@GameTest(templateName = EMPTY_STRUCTURE)
-	public void blasterHasStoneSwordDurabilityAndBreaksAfterLastShot(TestContext context) {
+	public void blasterHasGoldenSwordDurabilityAndBreaksAfterLastShot(TestContext context) {
 		PlayerEntity player = context.createMockSurvivalPlayer();
 		player.setPosition(context.getAbsolute(new Vec3d(3.5, 2, 3.5)));
 		ItemStack stack = new ItemStack(ModItems.BLASTER);
-		context.assertTrue(stack.getMaxDamage() == Items.STONE_SWORD.getMaxDamage() && stack.getMaxDamage() == 131,
-				"Debe tener los mismos 131 usos que una espada de piedra");
-		stack.setDamage(129);
+		context.assertTrue(stack.getMaxDamage() == Items.GOLDEN_SWORD.getMaxDamage() && stack.getMaxDamage() == 32,
+				"Debe tener los mismos 32 usos que una espada de oro");
+		stack.setDamage(30);
 		player.setStackInHand(Hand.MAIN_HAND, stack);
 		ModItems.BLASTER.use(context.getWorld(), player, Hand.MAIN_HAND);
-		context.assertTrue(!stack.isEmpty() && stack.getDamage() == 130, "Disparar debe gastar un punto de durabilidad");
+		context.assertTrue(!stack.isEmpty() && stack.getDamage() == 31, "Disparar debe gastar un punto de durabilidad");
 		ModItems.BLASTER.use(context.getWorld(), player, Hand.MAIN_HAND);
 		context.assertTrue(player.getMainHandStack().isEmpty(), "El último disparo debe romper el bláster");
 		ownedBolts(context, player).forEach(LaserBoltEntity::discard);
@@ -208,7 +208,7 @@ public class TrooperHeadGameTests implements FabricGameTest {
 		PlayerEntity player = context.createMockSurvivalPlayer();
 		player.setPosition(context.getAbsolute(new Vec3d(3.5, 2, 3.5)));
 		ItemStack offhand = new ItemStack(ModItems.BLASTER);
-		offhand.setDamage(130);
+		offhand.setDamage(31);
 		player.setStackInHand(Hand.OFF_HAND, offhand);
 		ModItems.BLASTER.use(context.getWorld(), player, Hand.OFF_HAND);
 		context.assertTrue(player.getOffHandStack().isEmpty(), "Disparar con la mano secundaria también debe romperlo");
@@ -216,12 +216,13 @@ public class TrooperHeadGameTests implements FabricGameTest {
 		ModItems.BLASTER.postHit(melee, ModEntities.STORMTROOPER.create(context.getWorld()), player);
 		context.assertTrue(melee.getDamage() == 1, "Un golpe cuerpo a cuerpo también debe gastar un uso");
 		PlayerEntity creative = context.createMockCreativePlayer();
+		creative.getAbilities().creativeMode = true;
 		creative.setPosition(context.getAbsolute(new Vec3d(3.5, 2, 3.5)));
 		ItemStack creativeStack = new ItemStack(ModItems.BLASTER);
-		creativeStack.setDamage(130);
+		creativeStack.setDamage(31);
 		creative.setStackInHand(Hand.MAIN_HAND, creativeStack);
 		ModItems.BLASTER.use(context.getWorld(), creative, Hand.MAIN_HAND);
-		context.assertTrue(!creativeStack.isEmpty() && creativeStack.getDamage() == 130,
+		context.assertTrue(!creativeStack.isEmpty() && creativeStack.getDamage() == 31,
 				"El modo Creativo debe conservar la durabilidad");
 		ownedBolts(context, player).forEach(LaserBoltEntity::discard);
 		ownedBolts(context, creative).forEach(LaserBoltEntity::discard);
@@ -245,16 +246,17 @@ public class TrooperHeadGameTests implements FabricGameTest {
 			ModItems.BLASTER.use(context.getWorld(), player, Hand.MAIN_HAND);
 		}
 		context.waitAndRun(8, () -> {
-			context.assertTrue(first.getHealth() == 10, "El bláster del jugador debe hacer 10 de daño al trooper");
-			context.assertTrue(second.getHealth() == 10, "Llevar el disfraz no debe impedir dañar troopers con el bláster");
+			context.assertTrue(first.getHealth() == 12, "El bláster del jugador debe hacer 8 de daño al trooper");
+			context.assertTrue(second.getHealth() == 12, "Llevar el disfraz no debe impedir dañar troopers con el bláster");
 			context.complete();
 		});
 	}
 
-	@GameTest(templateName = EMPTY_STRUCTURE, tickLimit = 60)
-	public void playerBlasterKillsCreeperInTwoShots(TestContext context) {
+	@GameTest(templateName = EMPTY_STRUCTURE, tickLimit = 90)
+	public void playerBlasterKillsCreeperInThreeShots(TestContext context) {
 		floor(context);
-		var creeper = context.spawnMob(EntityType.CREEPER, 6, 1, 3);
+		// Leave enough floor behind the target for knockback from all three hits.
+		var creeper = context.spawnMob(EntityType.CREEPER, 3, 1, 3);
 		creeper.setAiDisabled(true);
 		PlayerEntity player = context.createMockSurvivalPlayer();
 		player.setPosition(context.getAbsolute(new Vec3d(1.5, 1, 3.5)));
@@ -264,12 +266,17 @@ public class TrooperHeadGameTests implements FabricGameTest {
 		context.assertTrue(creeper.getHealth() == 20, "El creeper debe empezar con sus 20 puntos de vida");
 		ModItems.BLASTER.use(context.getWorld(), player, Hand.MAIN_HAND);
 		context.waitAndRun(8, () -> {
-			context.assertTrue(creeper.isAlive() && creeper.getHealth() == 10,
-					"El primer impacto debe quitar 10 puntos sin matar al creeper");
+			context.assertTrue(creeper.isAlive() && creeper.getHealth() == 12,
+					"El primer impacto debe quitar 8 puntos sin matar al creeper");
 		});
 		context.waitAndRun(30, () -> ModItems.BLASTER.use(context.getWorld(), player, Hand.MAIN_HAND));
 		context.waitAndRun(38, () -> {
-			context.assertFalse(creeper.isAlive(), "El segundo impacto debe matar al creeper");
+			context.assertTrue(creeper.isAlive() && creeper.getHealth() == 4,
+					"El segundo impacto debe dejar al creeper con 4 puntos de vida");
+		});
+		context.waitAndRun(60, () -> ModItems.BLASTER.use(context.getWorld(), player, Hand.MAIN_HAND));
+		context.waitAndRun(68, () -> {
+			context.assertFalse(creeper.isAlive(), "El tercer impacto debe matar al creeper");
 			context.complete();
 		});
 	}
@@ -289,8 +296,8 @@ public class TrooperHeadGameTests implements FabricGameTest {
 		restored.readNbt(saved);
 		context.getWorld().spawnEntity(restored);
 		context.waitAndRun(8, () -> {
-			context.assertTrue(target.getHealth() == 10,
-					"El disparo guardado debe conservar los 10 de daño del jugador y poder dañar troopers");
+			context.assertTrue(target.getHealth() == 12,
+					"El disparo guardado debe conservar los 8 de daño del jugador y poder dañar troopers");
 			context.complete();
 		});
 	}

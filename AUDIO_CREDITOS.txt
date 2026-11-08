@@ -34,3 +34,7 @@ La grabación completa y sus subtítulos no se incluyen en el repositorio.
 Los efectos sintéticos de impacto, radio, daño y muerte fueron generados por
 tools/generate_sounds.py y son recursos separados. Los dos disparos sintéticos
 de la primera versión permanecen como archivos, pero el arma usa el banco E-11.
+
+Nave imperial (1.0.5): audio solicitado por el usuario.
+Fuente: https://www.youtube.com/watch?v=E-OA5wgMBLs
+Archivo: ship/star_destroyer_encounter.ogg. Mono, normalizado a -18 LUFS, pico objetivo -3 dB y fundidos de entrada/salida.

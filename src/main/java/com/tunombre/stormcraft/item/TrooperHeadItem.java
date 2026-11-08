@@ -1,6 +1,8 @@
 package com.tunombre.stormcraft.item;
 
 import java.util.List;
+import net.minecraft.server.world.ServerWorld;
+import com.tunombre.stormcraft.world.ImperialHostilityState;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
@@ -19,6 +21,11 @@ public final class TrooperHeadItem extends ArmorItem {
 	}
 
 	public static boolean isDisguised(PlayerEntity player) {
+		return isWearingTrooperHead(player) && (!(player.getWorld() instanceof ServerWorld world)
+				|| !ImperialHostilityState.get(world).isIdentified(player));
+	}
+
+	public static boolean isWearingTrooperHead(PlayerEntity player) {
 		return player.getEquippedStack(EquipmentSlot.HEAD).isOf(ModItems.TROOPER_HEAD);
 	}
 
